@@ -15,7 +15,9 @@ There are two parts to this project, a frontend and a backend. This project repr
 - Inventory can be exported to CSV vie the following endpoint: https://abc.nc.gov/StoresBoards/ExportData
 - CSV contains drink items. Each item is identified by a six digit code. 
 
-This script monitors the inventory and creates alerts based on a mapping of clients to drink items. The alert system is done using Twilio and sends the text message alert to the associated client.
+This script monitors the inventory and creates alerts based on a mapping of clients to drink items. 
+
+The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and sends the text message alert to the associated client.
 
 ## Database
 The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow
