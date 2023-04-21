@@ -5,6 +5,8 @@ Track drink inventory and alert to various users via text when new inventory com
 There are two parts to this project, a frontend and a backend. This project represents the backend.
 
 ## Backend: Inventory Monitoring and SMS Alerts
+
+### Inventory Monitoring
 - Inventory is monitored from this [site](https://abc.nc.gov/StoresBoards/Stocks)
 - Inventory is updated every 15 minutes
 - Inventory can be exported to CSV vie the following endpoint: https://abc.nc.gov/StoresBoards/ExportData
