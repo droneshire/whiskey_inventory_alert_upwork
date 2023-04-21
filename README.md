@@ -6,6 +6,9 @@ There are two parts to this project, a frontend and a backend. This project repr
 
 ## Backend: Inventory Monitoring and SMS Alerts
 
+![image](https://user-images.githubusercontent.com/2355438/233558659-06ae0128-f788-4f0f-a594-2b26f459d32e.png)
+
+
 ### Inventory Monitoring
 - Inventory is monitored from this [site](https://abc.nc.gov/StoresBoards/Stocks)
 - Inventory is updated every 15 minutes
