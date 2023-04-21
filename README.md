@@ -17,7 +17,7 @@ There are two parts to this project, a frontend and a backend. This project repr
 
 This script monitors the inventory and creates alerts based on a mapping of clients to drink items. 
 
-The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and sends the text message alert to the associated client.
+The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and sends the text message alert to the associated client. The initial setup will be pay as you go plan on Twilio, and should be fairly reasonable costwise. 
 
 ## Database
 The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow
