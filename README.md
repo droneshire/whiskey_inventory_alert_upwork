@@ -17,7 +17,9 @@ The client/drink database will be a sqlite backed Firebase database that will be
 
 In this script, the database will be accessed using [Firebase authenticated API calls](https://firebase.google.com/docs/auth/web/start) and will listen to database changes made by the user on the frontend website.
 
-## Frontend
+## Frontend: Assign Inventory Watch to Clients
 The Firebase backed frontend will be a separate repo of a React/Typescript based website. Link to be provided once it is developed.
 
 The frontend will have a simple interface, that will require Google authentication to access. 
+
+It will allow the user to input new clients, their contact info, and the associated product codes to watch and alert on.
