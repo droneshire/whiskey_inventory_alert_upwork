@@ -30,3 +30,9 @@ The Firebase backed frontend will be a separate repo of a React/Typescript based
 The frontend will have a simple interface, that will require Google authentication to access. 
 
 It will allow the user to input new clients, their contact info, and the associated product codes to watch and alert on.
+
+## Hosting
+
+The backend can be hosted on any server that supports `python3` and has internet access. General backend setup will be the responsibility of the host so cost and maintenance are beyond the scope of this project. 
+
+The frontend will be a Firebase web app, so hosting will be managed through Google's Firebase hosting service (which is free as long as database access is reasonable, on the order of less than 1000 per day).
