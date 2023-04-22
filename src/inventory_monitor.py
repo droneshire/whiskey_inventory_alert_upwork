@@ -1,23 +1,8 @@
-"""
-This is a class called InventoryMonitor that is used to monitor the inventory of a
-- Inventory is monitored from this [site](https://abc.nc.gov/StoresBoards/Stocks)
-- Inventory is updated every 15 minutes
-- Inventory can be exported to CSV vie the following endpoint:
-        https://abc.nc.gov/StoresBoards/ExportData
-- CSV contains drink items. Each item is identified by a six digit code.
-
-This class monitors the inventory and creates alerts based on a mapping of clients
-to drink items. Alerts will be determined by the heuristic of specified inventory
-going from sold out (qty 0) to various non-zero values. In other words, when
-inventory goes from out of stock to in stock for specified items.
-
-The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and
-sends the text message alert to the associated client. The initial setup will be pay
-as you go plan on Twilio, and should be fairly reasonable costwise
-"""
 import os
 import tempfile
 import time
+
+import pandas as pd
 import typing as T
 
 from util import csv_logger, log, web2_client
@@ -58,13 +43,19 @@ class InventoryMonitor:
         self.last_inventory_update_time = time.time()
 
     def _check_inventory(self) -> None:
+        if client is None:
+            return
+
         for client in self.clients:
             self._check_client_inventory(client)
 
     def _check_client_inventory(self, client: Client) -> None:
+        if client is None:
+            return
+
         for item in client.items:
             if self._did_item_go_from_out_of_stock_to_in_stock(item):
-                self.twilio_util.send_text(
+                self.twilio_util.send_sms(
                     client.phone_number,
                     f"{item.item_name} is now in stock with {item.quantity} left",
                 )

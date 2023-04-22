@@ -5,6 +5,7 @@ Monitor the inventory of the store
 import argparse
 import dotenv
 
+from inventory_monitor import InventoryMonitor
 from util.twilio_util import TwilioUtil
 
 
@@ -37,9 +38,8 @@ def main():
         verbose=args.verbose,
     )
 
-    twilio_util.send_sms(
-        to_number=os.getenv("MY_PHONE_NUMBER"),
-        content="Inventory is low!",
+    monitor: InventoryMonitor = InventoryMonitor(
+        download_url=os.getenv("INVENTORY_DOWNLOAD_URL"), twilio_util=twilio_util
     )
 
 
