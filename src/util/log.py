@@ -70,10 +70,6 @@ class MultiHandler(logging.Handler):
             self.handleError(record)
 
 
-def get_lifetime_game_stats(log_dir: str, user: str) -> str:
-    return os.path.join(log_dir, "stats", user.lower() + "_lifetime_game_bot_stats.json")
-
-
 def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
     src_dir = os.path.dirname(os.path.realpath(__file__))
     log_dir = os.path.join(os.path.dirname(src_dir), "logs", name)
@@ -86,6 +82,16 @@ def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
 
 def is_color_supported() -> bool:
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+
+
+def get_pretty_seconds(s: int) -> str:
+    """Given an amount of seconds, return a formatted string with
+    hours, minutes and seconds; taken from
+    https://stackoverflow.com/a/775075/2972183"""
+    s = int(s)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    return f"{h:d}h:{m:02d}m:{s:02d}s"
 
 
 def make_formatter_printer(

@@ -2,7 +2,6 @@ import typing as T
 import yagmail
 
 from utils import logger
-from utils.security import decrypt_secret
 
 
 class Email(T.TypedDict):

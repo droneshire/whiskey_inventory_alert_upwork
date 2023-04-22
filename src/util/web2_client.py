@@ -2,15 +2,7 @@ import requests
 import time
 import typing as T
 
-from yaspin import yaspin
-
-from utils import logger, tor
-
-
-@yaspin(text="Waiting...")
-def wait(wait_time) -> None:
-    time.sleep(wait_time)
-
+from utils import logger, tor, wait
 
 MY_IP_URL = "http://icanhazip.com/"
 
@@ -101,9 +93,12 @@ class Web2Client:
             return
 
         try:
-            content = self._get_request(url, headers, params, timeout).content
-            with open(file_path, "wb") as f:
-                f.write(content)
+            with self.requests.request(
+                "GET", url, params=params, headers=headers, timeout=timeout, stream=True
+            ) as r:
+                with open(file_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
         except KeyboardInterrupt:
             raise
         except:
