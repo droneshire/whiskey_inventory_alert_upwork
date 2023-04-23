@@ -32,6 +32,10 @@ The frontend will have a simple interface, that will require Google authenticati
 
 It will allow the user to input new clients, their contact info, and the associated product codes to watch and alert on.
 
+### Icons
+- https://abc.nc.gov/Images/Icons/ABC%20Warehouse%20Icon.png
+- https://abc.nc.gov/Images/ABCImagePanel.png
+
 ## Hosting
 
 The backend can be hosted on any server that supports python3 and has internet access. General backend setup will be the responsibility of the host so cost and maintenance are beyond the scope of this project.
