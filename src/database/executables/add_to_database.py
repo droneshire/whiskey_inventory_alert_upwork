@@ -45,6 +45,10 @@ def main() -> None:
 
     log.print_bold("Adding items")
 
+    client = ClientDb(TEST_CLIENT.name)
+
+    client.add_item("Ross Yeager", "70015")
+
 
 if __name__ == "__main__":
     main()

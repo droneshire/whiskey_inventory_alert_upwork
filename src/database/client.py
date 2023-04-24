@@ -78,13 +78,13 @@ class ClientDb:
     def add_item(
         name: str,
         nc_code: str,
-        brand_name: str,
-        total_available: int,
-        size: str,
-        cases_per_pallet: int,
-        supplier: str,
-        supplier_allotment: int,
-        broker_name: str,
+        brand_name: str = None,
+        total_available: int = None,
+        size: str = None,
+        cases_per_pallet: int = None,
+        supplier: str = None,
+        supplier_allotment: int = None,
+        broker_name: str = None,
         db_str: str = DEFAULT_DB,
     ) -> None:
         with ManagedSession() as db:
@@ -97,18 +97,26 @@ class ClientDb:
                 log.print_warn(f"Skipping add item, already in client!")
                 return
 
-            log.print_ok_arrow(f"Created {nc_code} wallet for {client.name}")
+            log.print_ok_arrow(f"Created item [{nc_code}] for {client.name}")
 
             item = Item(
                 client_id=client.name,
                 nc_code=nc_code,
-                brand_name=brand_name,
-                total_available=total_available,
-                size=size,
-                cases_per_pallet=cases_per_pallet,
-                supplier=supplier,
-                supplier_allotment=supplier_allotment,
-                broker_name=broker_name,
             )
+
+            if brand_name is not None:
+                item.brand_name = brand_name
+            if total_available is not None:
+                item.total_available = total_available
+            if size is not None:
+                item.size = size
+            if cases_per_pallet is not None:
+                item.cases_per_pallet = cases_per_pallet
+            if supplier is not None:
+                item.supplier = supplier
+            if supplier_allotment is not None:
+                item.supplier_allotment = supplier_allotment
+            if broker_name is not None:
+                item.broker_name = broker_name
 
             db.add(item)
