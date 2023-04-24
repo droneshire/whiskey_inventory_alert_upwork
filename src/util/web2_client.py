@@ -2,7 +2,7 @@ import requests
 import time
 import typing as T
 
-from utils import logger, tor, wait
+from util import log, tor, wait
 
 MY_IP_URL = "http://icanhazip.com/"
 
@@ -21,7 +21,7 @@ class Web2Client:
         self.rate_limit_delay = rate_limit_delay
 
         if dry_run:
-            logger.print_warn("Web2Client in dry run mode...")
+            log.print_warn("Web2Client in dry run mode...")
 
         if use_proxy:
             self.requests = tor.get_tor_session()
@@ -29,7 +29,7 @@ class Web2Client:
             self.requests = requests
 
         if verbose:
-            logger.print_bold(
+            log.print_bold(
                 f"Web2Client IP (proxy={use_proxy}): {self.requests.get(MY_IP_URL).text.strip()}"
             )
 

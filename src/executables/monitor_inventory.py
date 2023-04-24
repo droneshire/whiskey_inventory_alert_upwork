@@ -3,13 +3,14 @@ Monitor the inventory of the store
 """
 
 import argparse
+import os
 import dotenv
 
 from database.connect import init_database
 from database.models.client import Client
 from inventory_monitor import InventoryMonitor
-from util.twilio_util import TwilioUtil
 from util import log
+from util.twilio_util import TwilioUtil
 
 
 def parse_args() -> argparse.Namespace:
@@ -37,7 +38,7 @@ def main() -> None:
 
     dotenv.load_dotenv(".env")
 
-    logger.setup_log(args.log_level, args.log_dir, "db_convert")
+    log.setup_log(args.log_level, args.log_dir, "db_convert")
 
     init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client)
 

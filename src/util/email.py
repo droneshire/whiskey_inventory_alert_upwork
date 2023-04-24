@@ -1,7 +1,7 @@
 import typing as T
 import yagmail
 
-from utils import logger
+from util import log
 
 
 class Email(T.TypedDict):
@@ -46,9 +46,9 @@ def send_email_raw(
                 attachments=attachments,
             )
         if verbose:
-            logger.print_ok(f"To: {', '.join(to_addresses)}\nFrom: {email['address']}")
-            logger.print_ok(f"Subject: {subject}")
-            logger.print_ok(f"{content}")
+            log.print_ok(f"To: {', '.join(to_addresses)}\nFrom: {email['address']}")
+            log.print_ok(f"Subject: {subject}")
+            log.print_ok(f"{content}")
 
 
 def send_email(
@@ -77,4 +77,4 @@ def send_email(
         except:
             pass
 
-    logger.print_fail("Failed to send email alert")
+    log.print_fail("Failed to send email alert")

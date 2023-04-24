@@ -7,7 +7,7 @@ import typing as T
 
 from database.models.client import Client, ClientSchema
 from database.models.item import Item, ItemSchema
-from util import csv_logger, log, web2_client, wait
+from util import csv_log, log, web2_client, wait
 from util.twilio_util import TwilioUtil
 
 

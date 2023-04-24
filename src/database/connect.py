@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.orm.scoping import ScopedSessionMixin
+from sqlalchemy.orm.scoping import ScopedSession
 
 engine = None
 thread_safe_session_factory = None
@@ -20,7 +20,7 @@ def init_engine(uri, **kwargs) -> Engine:
     return engine
 
 
-def init_session_factory() -> ScopedSessionMixin:
+def init_session_factory() -> ScopedSession:
     """Initialize the thread_safe_session_factory."""
     global engine, thread_safe_session_factory
     if engine is None:

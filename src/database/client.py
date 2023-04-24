@@ -1,4 +1,5 @@
 import dotenv
+import os
 import time
 import typing as T
 
@@ -8,7 +9,7 @@ from sqlalchemy.sql import func
 from database.connect import ManagedSession
 from database.models.client import Client
 from database.models.item import Item
-from utils import logger
+from util import log
 
 DEFAULT_DB = os.environ.get("DEFAULT_DB")
 
@@ -22,7 +23,7 @@ class ClientDb:
         with ManagedSession(self.db_str) as db:
             client = db.query(Client).filter(Client.name == name).first()
             assert client is not None, f"Client {self.name} not in DB!"
-            logger.print_bold(f"{name} initiated")
+            log.print_bold(f"{name} initiated")
             for item in client.items:
                 self.items.append(item)
 
@@ -37,7 +38,7 @@ class ClientDb:
             try:
                 db.add(name)
             except:
-                logger.print_fail("Failed to store db item!")
+                log.print_fail("Failed to store db item!")
 
     @contextmanager
     def item(self, nc_code: str) -> T.Iterator[Item]:
@@ -50,7 +51,7 @@ class ClientDb:
             try:
                 db.add(item)
             except:
-                logger.print_fail("Failed to store db item!")
+                log.print_fail("Failed to store db item!")
 
     @staticmethod
     def add_client(
@@ -62,10 +63,10 @@ class ClientDb:
         with ManagedSession(db_str) as db:
             client = db.query(Client).filter(Client.name == name).first()
             if client is not None:
-                logger.print_warn(f"Skipping {name} add, already in db")
+                log.print_warn(f"Skipping {name} add, already in db")
                 return
 
-            logger.print_ok_arrow(f"Created {name} client")
+            log.print_ok_arrow(f"Created {name} client")
 
             client = Client(
                 name=name, email=email, phone_number=phone_number, last_updated=func.now()
@@ -89,14 +90,14 @@ class ClientDb:
         with ManagedSession(db_str) as db:
             client = db.query(Client).filter(Client.name == name).first()
             if client is None:
-                logger.print_fail(f"Failed to add item, user doesn't exist!")
+                log.print_fail(f"Failed to add item, user doesn't exist!")
                 return
 
             if nc_code in [i.nc_code for i in client.items]:
-                logger.print_warn(f"Skipping add item, already in client!")
+                log.print_warn(f"Skipping add item, already in client!")
                 return
 
-            logger.print_ok_arrow(f"Created {nc_code} wallet for {client.name}")
+            log.print_ok_arrow(f"Created {nc_code} wallet for {client.name}")
 
             item = Item(
                 client_id=client.name,

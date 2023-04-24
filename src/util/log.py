@@ -100,7 +100,7 @@ def make_formatter_printer(
     prefix: str = "",
     return_formatter: bool = False,
 ) -> T.Callable:
-    game_logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 
     def formatter(message, *args, **kwargs):
         if args or kwargs:
@@ -121,11 +121,11 @@ def make_formatter_printer(
 
     def printer(message, *args, **kwargs):
         if log_level == logging.DEBUG:
-            game_logger.debug(message)
+            logger.debug(message)
         elif log_level == logging.ERROR:
-            game_logger.critical(message)
+            logger.critical(message)
         elif log_level == logging.INFO:
-            game_logger.info(message)
+            logger.info(message)
 
         print(formatter(message, *args, **kwargs))
         sys.stdout.flush()

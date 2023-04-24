@@ -1,5 +1,6 @@
 import argparse
 import dotenv
+import os
 import typing as T
 
 from database.client import ClientDb
@@ -43,7 +44,7 @@ def main() -> None:
 
     client.add_client(TEST_CLIENT.name, TEST_CLIENT.email, TEST_CLIENT.phone_number)
 
-    logger.print_bold("Adding items")
+    log.print_bold("Adding items")
 
 
 if __name__ == "__main__":
