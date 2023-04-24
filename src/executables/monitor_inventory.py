@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--wait-time", default=60, type=int, help="Time to wait between runs")
     parser.add_argument("--log-dir", default=log_dir)
+    parser.add_argument("--use-local-db", action="store_true", help="Use local database")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -51,8 +52,12 @@ def main() -> None:
     )
 
     monitor: InventoryMonitor = InventoryMonitor(
-        download_url=os.getenv("INVENTORY_DOWNLOAD_URL"), twilio_util=twilio_util
+        download_url=os.getenv("INVENTORY_DOWNLOAD_URL"),
+        twilio_util=twilio_util,
+        use_local_db=args.use_local_db,
     )
+
+    monitor.init()
 
     while True:
         monitor.run()

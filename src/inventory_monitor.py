@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import time
 
@@ -20,10 +21,14 @@ class InventoryMonitor:
         self,
         download_url: str,
         twilio_util: TwilioUtil,
+        log_dir: str,
+        use_local_db: bool = False,
         time_between_inventory_checks: int = None,
     ) -> None:
         self.download_url = download_url
         self.twilio_util: TwilioUtil = twilio_util
+        self.csv_file = os.path.join(log_dir, "inventory.csv")
+        self.use_local_db = use_local_db
         self.time_between_inventory_checks = (
             time_between_inventory_checks | self.TIME_BETWEEN_INVENTORY_CHECKS
         )
@@ -38,13 +43,18 @@ class InventoryMonitor:
         self.last_inventory_update_time = None
 
     def init(self) -> None:
-        self.clients = Client.query.all()
+        if self.use_local_db:
+            self.clients: Client = Client.query.all()
+
+        if os.path.isfile(self.csv_file):
+            self.last_inventory = pd.read_csv(self.csv_file)
 
     def _is_time_to_check_inventory(self) -> bool:
         if self.last_inventory_update_time is None:
             return True
 
-        return time.time() - self.last_inventory_update_time > self.time_between_inventory_checks
+        time_since_last_update = time.time() - self.last_inventory_update_time
+        return time_since_last_update > self.time_between_inventory_checks
 
     def _check_client_inventory(client: Client) -> None:
         if client is None:
@@ -105,6 +115,8 @@ class InventoryMonitor:
 
         self.last_inventory_update_time = time.time()
         self.new_inventory = inventory_pd
+
+        shutil.move(csv_file.name, self.csv_file)
 
     def _check_inventory(self) -> None:
         if not self.clients:
