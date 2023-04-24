@@ -1,4 +1,5 @@
 import contextlib
+import os
 import typing as T
 
 from sqlalchemy import create_engine
@@ -6,6 +7,10 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.scoping import ScopedSession
+from sqlalchemy_utils import database_exists
+
+from util import log
+from util.file_util import make_sure_path_exists
 
 engine = None
 thread_safe_session_factory = None
@@ -59,3 +64,17 @@ def ManagedSession():
         # source:
         # https://stackoverflow.com/questions/21078696/why-is-my-scoped-session-raising-an-attributeerror-session-object-has-no-attr
         thread_safe_session_factory.remove()
+
+
+def init_database(log_dir: str, db_name: str, db_model_class: T.Any) -> None:
+    db_file = os.path.join(log_dir, "database", db_name)
+    sql_db = "sqlite:///" + db_file
+
+    make_sure_path_exists(db_file)
+    engine = init_engine(sql_db)
+    if database_exists(engine.url):
+        log.print_bold(f"Found existing database")
+    else:
+        log.print_ok_blue(f"Creating new database!")
+        db_model_class.metadata.create_all(bind=engine)
+    init_session_factory()

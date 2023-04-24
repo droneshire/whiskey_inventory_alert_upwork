@@ -20,7 +20,7 @@ class ClientDb:
         self.items: T.List[Item] = []
         self.db_str = db_str
 
-        with ManagedSession(self.db_str) as db:
+        with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
             assert client is not None, f"Client {self.name} not in DB!"
             log.print_bold(f"{name} initiated")
@@ -29,7 +29,7 @@ class ClientDb:
 
     @contextmanager
     def client(self) -> T.Iterator[Client]:
-        with ManagedSession(self.db_str) as db:
+        with ManagedSession() as db:
             name = db.query(Client).filter(Client.name == self.name).first()
             assert name is not None, f"User {self.name} not in DB!"
 
@@ -42,7 +42,7 @@ class ClientDb:
 
     @contextmanager
     def item(self, nc_code: str) -> T.Iterator[Item]:
-        with ManagedSession(self.db_str) as db:
+        with ManagedSession() as db:
             item = db.query(Item).filter(Item.nc_code == nc_code).first()
             assert item is not None, f"Item for {nc_code} not in DB!"
 
@@ -60,7 +60,7 @@ class ClientDb:
         phone_number: str,
         db_str: str = DEFAULT_DB,
     ) -> None:
-        with ManagedSession(db_str) as db:
+        with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
             if client is not None:
                 log.print_warn(f"Skipping {name} add, already in db")
@@ -87,7 +87,7 @@ class ClientDb:
         broker_name: str,
         db_str: str = DEFAULT_DB,
     ) -> None:
-        with ManagedSession(db_str) as db:
+        with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
             if client is None:
                 log.print_fail(f"Failed to add item, user doesn't exist!")

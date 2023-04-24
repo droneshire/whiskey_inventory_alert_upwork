@@ -71,7 +71,8 @@ class MultiHandler(logging.Handler):
 
 
 def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
-    src_dir = os.path.dirname(os.path.realpath(__file__))
+    util_dir = os.path.dirname(os.path.realpath(__file__))
+    src_dir = os.path.dirname(util_dir)
     log_dir = os.path.join(os.path.dirname(src_dir), "logs", name)
 
     if not os.path.isdir(log_dir) and create_if_not_exist:

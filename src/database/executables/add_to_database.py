@@ -4,7 +4,8 @@ import os
 import typing as T
 
 from database.client import ClientDb
-from database import connect
+from database.connect import init_database
+from database.models.client import Client
 from util import log
 
 
@@ -19,7 +20,7 @@ dotenv.load_dotenv(".env")
 TEST_CLIENT = TestClient(
     os.getenv("TEST_CLIENT_NAME"),
     os.getenv("TEST_CLIENT_EMAIL"),
-    os.getenv("TEST_CLIENT_PHONE_NUMBER"),
+    os.getenv("TEST_CLIENT_PHONE"),
 )
 
 
@@ -38,11 +39,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args: argparse.Namespace = parse_args()
 
-    connect.init_database(args.log_dir, os.getenv("DEFAULT_DB"))
+    init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client)
 
-    client = ClientDb(TEST_CLIENT.name)
-
-    client.add_client(TEST_CLIENT.name, TEST_CLIENT.email, TEST_CLIENT.phone_number)
+    ClientDb.add_client(TEST_CLIENT.name, TEST_CLIENT.email, TEST_CLIENT.phone_number)
 
     log.print_bold("Adding items")
 

@@ -8,13 +8,13 @@ from database.connect import Base
 
 
 class Client(Base):
-    __tablename__ = "client"
+    __tablename__ = "Client"
 
     id = Column(types.Integer, primary_key=True)
     name = Column(types.String(80), unique=True, nullable=False)
     items = relationship("Item", backref="Client")
     email = Column(types.String(80), unique=True, nullable=False)
-    phone_number = Column(types.String(80), unique=True, nullable=False)
+    phone_number = Column(types.String(11), unique=True, nullable=False)
     last_updated = Column(types.DateTime(timezone=True), nullable=True)
     created_at = Column(types.DateTime(timezone=True), server_default=func.now())
 

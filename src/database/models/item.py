@@ -7,10 +7,10 @@ from database.connect import Base
 
 
 class Item(Base):
-    __tablename__ = "item"
+    __tablename__ = "Item"
 
     id = Column(types.Integer, primary_key=True)
-    client_id = Column(types.String, ForeignKey("Client.name"))
+    client_id = Column(types.String, ForeignKey("Client.id"))
     nc_code = Column(types.String(80), unique=True, nullable=False)
     brand_name = Column(types.String(80), unique=True, nullable=False)
     total_available = Column(types.Integer, nullable=False)
