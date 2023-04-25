@@ -2,7 +2,7 @@ import requests
 import time
 import typing as T
 
-from util import log, tor, wait
+from util import log, wait
 
 MY_IP_URL = "http://icanhazip.com/"
 
@@ -10,9 +10,8 @@ MY_IP_URL = "http://icanhazip.com/"
 class Web2Client:
     def __init__(
         self,
-        base_url: str,
+        base_url: str = "",
         rate_limit_delay: float = 5.0,
-        use_proxy: bool = False,
         dry_run: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -23,10 +22,7 @@ class Web2Client:
         if dry_run:
             log.print_warn("Web2Client in dry run mode...")
 
-        if use_proxy:
-            self.requests = tor.get_tor_session()
-        else:
-            self.requests = requests
+        self.requests = requests
 
         if verbose:
             log.print_bold(
@@ -79,12 +75,14 @@ class Web2Client:
         except KeyboardInterrupt:
             raise
         except:
+            log.format_fail(f"Failed to post to {url}")
             return {}
 
     def url_download(
         self,
         url: str,
         file_path: str,
+        data: str,
         headers: T.Dict[str, T.Any] = {},
         params: T.Dict[str, T.Any] = {},
         timeout: float = 5.0,
@@ -94,12 +92,21 @@ class Web2Client:
 
         try:
             with self.requests.request(
-                "GET", url, params=params, headers=headers, timeout=timeout, stream=True
+                "GET",
+                url,
+                data=data,
+                params=params,
+                headers=headers,
+                timeout=timeout,
+                stream=True,
+                allow_redirects=True,
             ) as r:
+                r.raise_for_status()
                 with open(file_path, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
         except KeyboardInterrupt:
             raise
         except:
+            log.format_fail(f"Failed to download {url} to {file_path}")
             return

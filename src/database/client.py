@@ -23,7 +23,6 @@ class ClientDb:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
             assert client is not None, f"Client {self.name} not in DB!"
-            log.print_bold(f"{name} initiated")
             for item in client.items:
                 self.items.append(item)
 
@@ -52,6 +51,14 @@ class ClientDb:
                 db.add(item)
             except:
                 log.print_fail("Failed to store db item!")
+
+    @staticmethod
+    def get_client_names() -> T.List[str]:
+        clients = []
+        with ManagedSession() as db:
+            clients_db = db.query(Client).all()
+            clients = [c.name for c in clients_db]
+        return clients
 
     @staticmethod
     def add_client(
@@ -100,7 +107,7 @@ class ClientDb:
             log.print_ok_arrow(f"Created item [{nc_code}] for {client.name}")
 
             item = Item(
-                client_id=client.name,
+                client_id=client.id,
                 nc_code=nc_code,
             )
 

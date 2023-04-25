@@ -12,14 +12,14 @@ class Item(Base):
     id = Column(types.Integer, primary_key=True)
     client_id = Column(types.String, ForeignKey("Client.id"))
     nc_code = Column(types.String(80), unique=True, nullable=False)
-    brand_name = Column(types.String(80), unique=True, nullable=True)
+    brand_name = Column(types.String(80), nullable=True)
     total_available = Column(types.Integer, nullable=True)
     size = Column(types.String(100), nullable=True)
     cases_per_pallet = Column(types.Integer, nullable=True)
     supplier = Column(types.String(100), nullable=True)
     supplier_allotment = Column(types.Integer, nullable=True)
     broker_name = Column(types.String(100), nullable=True)
-    create_time = Column(types.DateTime(timezone=True), nullable=True)
+    created_at = Column(types.DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
         return f"<Item {self.nc_code}:{self.brand_name}, {self.total_available}>"
@@ -36,7 +36,7 @@ class ItemSchema(Schema):  # type: ignore
     supplier = fields.Str()
     supplier_allotment = fields.Int()
     broker_name = fields.Str()
-    create_time = fields.DateTime()
+    created_at = fields.DateTime()
 
     @post_load
     def make_object(self, data, **kwargs):

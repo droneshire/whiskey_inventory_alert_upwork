@@ -33,7 +33,41 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--log-dir", default=log_dir)
 
+    # item nc_code argument
+    parser.add_argument(
+        "--name",
+        type=str,
+        help="Name of the client",
+        default=TEST_CLIENT.name,
+    )
+
+    parser.add_argument(
+        "--email",
+        type=str,
+        help="Email of the client",
+        default=TEST_CLIENT.email,
+    )
+
+    parser.add_argument(
+        "--phone-number",
+        type=str,
+        help="Phone number of the client",
+        default=TEST_CLIENT.phone_number,
+    )
+
+    parser.add_argument("--item-code", type=str, help="Item code of the item to add")
+
     return parser.parse_args()
+
+
+def add_client(name: str, email: str, phone_number: str) -> None:
+    """Add a client to the database"""
+    ClientDb.add_client(name, email, phone_number)
+
+
+def add_item(name: str, item_code: str) -> None:
+    """Add an item to the database"""
+    ClientDb.add_item(name, item_code)
 
 
 def main() -> None:
@@ -41,13 +75,10 @@ def main() -> None:
 
     init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client)
 
-    ClientDb.add_client(TEST_CLIENT.name, TEST_CLIENT.email, TEST_CLIENT.phone_number)
+    add_client(args.name, args.email, args.phone_number)
 
-    log.print_bold("Adding items")
-
-    client = ClientDb(TEST_CLIENT.name)
-
-    client.add_item("Ross Yeager", "70015")
+    if args.item_code:
+        add_item(args.name, args.item_code)
 
 
 if __name__ == "__main__":
