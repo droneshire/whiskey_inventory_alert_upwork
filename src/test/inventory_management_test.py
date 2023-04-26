@@ -75,8 +75,7 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor = None
         self.twilio_stub = None
 
-    # have it test the inventory monitor using the test data in the test_data folder
-    def test_sms_alert(self):
+    def test_out_of_stock_to_in_stock(self):
         test_client_name = "test"
 
         add_client(test_client_name, "test@gmail.com", "+1234567890")
@@ -87,13 +86,31 @@ class InventoryManagementTest(unittest.TestCase):
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
-        print(df)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
         df = self.monitor.update_inventory(self.after_csv)
-        print(df)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+
+    def test_unlisted_to_in_stock(self):
+        test_client_name = "test"
+
+        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        add_item(test_client_name, "00120")
+
+        db = ClientDb(test_client_name)
+        with db.client() as client:
+            client_schema = ClientSchema().dump(client)
+
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        df = self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
