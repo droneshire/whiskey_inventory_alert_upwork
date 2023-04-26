@@ -85,11 +85,11 @@ class InventoryMonitor:
                 db_item.supplier_allotment = int(item["Supplier Allotment"])
                 db_item.broker_name = item["Broker Name"]
 
-    def check_client_inventory(self, client: ClientSchema) -> bool:
+    def check_client_inventory(self, client: ClientSchema) -> None:
         log.print_bold(f"Checking {json.dumps(client, indent=4)}")
 
         if not client:
-            return False
+            return
 
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
@@ -142,7 +142,7 @@ class InventoryMonitor:
                 log.print_normal(f"No alert, {nc_code} was previously in stock")
                 continue
 
-            inventory_threshold = client["inventory_threshold"]
+            inventory_threshold = client["threshold_inventory"]
 
             if delta < inventory_threshold:
                 log.print_normal(f"{nc_code} is below inventory threshold of {inventory_threshold}")
@@ -155,15 +155,13 @@ class InventoryMonitor:
 
             if self.dry_run:
                 log.print_normal("Dry run, not sending SMS")
-                return True
+                continue
 
             if client.phone_number is not None:
                 self.twilio_util.send_sms(
                     client.phone_number,
                     message,
                 )
-
-            return True
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame

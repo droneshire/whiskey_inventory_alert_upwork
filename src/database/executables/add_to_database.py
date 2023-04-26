@@ -4,8 +4,8 @@ import typing as T
 
 import dotenv
 
-from database.client import ClientDb
 from database.connect import init_database
+from database.helpers import add_client, add_item
 from database.models.client import Client
 from util import log
 
@@ -59,16 +59,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--item-code", type=str, help="Item code of the item to add")
 
     return parser.parse_args()
-
-
-def add_client(name: str, email: str, phone_number: str) -> None:
-    """Add a client to the database"""
-    ClientDb.add_client(name, email, phone_number)
-
-
-def add_item(name: str, item_code: str) -> None:
-    """Add an item to the database"""
-    ClientDb.add_item(name, item_code)
 
 
 def main() -> None:
