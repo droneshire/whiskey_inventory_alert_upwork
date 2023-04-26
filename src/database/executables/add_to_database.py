@@ -1,7 +1,8 @@
 import argparse
-import dotenv
 import os
 import typing as T
+
+import dotenv
 
 from database.client import ClientDb
 from database.connect import init_database
@@ -72,6 +73,8 @@ def add_item(name: str, item_code: str) -> None:
 
 def main() -> None:
     args: argparse.Namespace = parse_args()
+
+    dotenv.load_dotenv(".env")
 
     init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client)
 

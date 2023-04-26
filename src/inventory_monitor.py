@@ -3,14 +3,14 @@ import os
 import shutil
 import tempfile
 import time
+import typing as T
 
 import pandas as pd
-import typing as T
 
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import Item, ItemSchema
-from util import log, web2_client, wait
+from util import log, wait, web2_client
 from util.twilio_util import TwilioUtil
 
 
@@ -85,11 +85,11 @@ class InventoryMonitor:
                 db_item.supplier_allotment = int(item["Supplier Allotment"])
                 db_item.broker_name = item["Broker Name"]
 
-    def _check_client_inventory(self, client: ClientSchema) -> None:
+    def check_client_inventory(self, client: ClientSchema) -> bool:
         log.print_bold(f"Checking {json.dumps(client, indent=4)}")
 
         if not client:
-            return
+            return False
 
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
@@ -119,24 +119,26 @@ class InventoryMonitor:
 
             if previous_item is None:
                 log.print_fail(f"{nc_code} was not previously in inventory")
-                continue
+                previous_available = 0
+            else:
+                previous_available = previous_item["Total Available"]
 
-            delta = item["Total Available"] - previous_item["Total Available"]
+            delta = item["Total Available"] - previous_available
             if delta > 0:
                 delta_str = log.format_ok_blue_arrow(f"+{delta}")
             elif delta < 0:
-                delta_str = log.format_fail_arrow(f"-{delta}")
+                delta_str = log.format_fail_arrow(f"{delta}")
             else:
                 delta_str = log.format_normal(f"{delta}")
 
             brand_name = item["Brand Name"]
 
             log.print_ok_blue(
-                f"{nc_code}: Previous inventory: {previous_item['Total Available']}, Current inventory: {item['Total Available']}"
+                f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item['Total Available']}"
             )
             log.print_ok_blue_arrow(f"{nc_code} {brand_name} change: {delta_str} units")
 
-            if previous_item is not None and previous_item["Total Available"] != 0:
+            if previous_item is not None and previous_available != 0:
                 log.print_normal(f"No alert, {nc_code} was previously in stock")
                 continue
 
@@ -153,13 +155,15 @@ class InventoryMonitor:
 
             if self.dry_run:
                 log.print_normal("Dry run, not sending SMS")
-                return
+                return True
 
             if client.phone_number is not None:
                 self.twilio_util.send_sms(
                     client.phone_number,
                     message,
                 )
+
+            return True
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
@@ -186,30 +190,35 @@ class InventoryMonitor:
 
         return dataframe
 
-    def _update_inventory(self) -> None:
-        csv_file = tempfile.NamedTemporaryFile(mode="w", delete=False)
+    def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
+        with tempfile.NamedTemporaryFile() as csv_file:
+            if os.path.isfile(download_url):
+                shutil.copyfile(download_url, csv_file.name)
+            else:
+                try:
+                    self.web.url_download(
+                        download_url, csv_file.name, self.download_key, timeout=30.0
+                    )
+                except Exception as e:
+                    log.print_fail(f"Error getting inventory: {e}")
 
-        try:
-            self.web.url_download(self.download_url, csv_file.name, self.download_key, timeout=30.0)
             self.new_inventory: pd.core.frame.DataFrame = self._load_inventory(csv_file.name)
-        except Exception as e:
-            log.print_fail(f"Error getting inventory: {e}")
-            os.remove(csv_file.name)
-            return
+            shutil.copy(csv_file.name, self.csv_file)
 
-        shutil.move(csv_file.name, self.csv_file)
         self.last_inventory_update_time = time.time()
+
+        return self.new_inventory
 
     def _check_inventory(self) -> None:
         if not self.clients:
             log.print_fail("No clients to check inventory for")
             return
 
-        self._update_inventory()
+        self.update_inventory(self.download_url)
 
         for name, client in self.clients.items():
             log.print_normal(f"Checking inventory for {name}")
-            self._check_client_inventory(client)
+            self.check_client_inventory(client)
 
         self.last_inventory = self.new_inventory
 

@@ -17,6 +17,7 @@ class Client(Base):
     phone_number = Column(types.String(11), unique=True, nullable=False)
     threshold_inventory = Column(types.Integer, nullable=True, default=1)
     last_updated = Column(types.DateTime(timezone=True), nullable=True)
+    updates_sent = Column(types.Integer, nullable=True, default=0)
     created_at = Column(types.DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
@@ -31,6 +32,7 @@ class ClientSchema(Schema):  # type: ignore
     phone_number = fields.Str()
     threshold_inventory = fields.Int()
     last_updated = fields.DateTime()
+    updates_sent = fields.Int()
     created_at = fields.DateTime()
 
     @post_load

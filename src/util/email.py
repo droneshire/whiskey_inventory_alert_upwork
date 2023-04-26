@@ -1,4 +1,5 @@
 import typing as T
+
 import yagmail
 
 from util import log

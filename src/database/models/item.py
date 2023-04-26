@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, post_load
-from sqlalchemy import types, ForeignKey
+from sqlalchemy import ForeignKey, types
 from sqlalchemy.schema import Column
 from sqlalchemy.sql import func
 
