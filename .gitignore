@@ -1,5 +1,6 @@
 logs/
 test/test_data/database/
+test/test_data/inventory.csv
 *.db
 
 # Byte-compiled / optimized / DLL files
