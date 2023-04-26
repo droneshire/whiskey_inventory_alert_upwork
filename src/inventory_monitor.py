@@ -15,7 +15,7 @@ from util.twilio_util import TwilioUtil
 
 
 class InventoryMonitor:
-    TIME_BETWEEN_INVENTORY_CHECKS = 60 * 15  # 15 minutes
+    TIME_BETWEEN_INVENTORY_CHECKS = 60 * 2
     WAIT_TIME = 60
     INVENTORY_CODE_KEY = "NC Code"
 
