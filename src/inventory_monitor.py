@@ -125,9 +125,9 @@ class InventoryMonitor:
 
             delta = item["Total Available"] - previous_available
             if delta > 0:
-                delta_str = log.format_ok_blue_arrow(f"+{delta}")
+                delta_str = log.format_ok(f"+{delta}")
             elif delta < 0:
-                delta_str = log.format_fail_arrow(f"{delta}")
+                delta_str = log.format_fail(f"{delta}")
             else:
                 delta_str = log.format_normal(f"{delta}")
 
@@ -157,9 +157,9 @@ class InventoryMonitor:
                 log.print_normal("Dry run, not sending SMS")
                 continue
 
-            if client.phone_number is not None:
+            if client["phone_number"]:
                 self.twilio_util.send_sms(
-                    client.phone_number,
+                    client["phone_number"],
                     message,
                 )
 
@@ -189,6 +189,8 @@ class InventoryMonitor:
         return dataframe
 
     def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
+        self.last_inventory = self.new_inventory
+
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
@@ -217,8 +219,6 @@ class InventoryMonitor:
         for name, client in self.clients.items():
             log.print_normal(f"Checking inventory for {name}")
             self.check_client_inventory(client)
-
-        self.last_inventory = self.new_inventory
 
     def run(self) -> None:
         if not self._is_time_to_check_inventory():

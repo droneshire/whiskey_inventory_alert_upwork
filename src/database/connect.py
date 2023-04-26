@@ -69,7 +69,7 @@ def ManagedSession():
 def remove_database(log_dir: str, db_name: str) -> None:
     db_file = os.path.join(log_dir, "database", db_name)
     if os.path.isfile(db_file):
-        log.print_warn(f"Deleting existing database due to force arg!")
+        log.print_warn(f"Deleting existing database!")
         os.remove(db_file)
 
 

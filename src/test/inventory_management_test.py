@@ -7,7 +7,7 @@ import unittest
 import dotenv
 
 from database.client import ClientDb
-from database.connect import close_database, init_database
+from database.connect import close_database, init_database, remove_database
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
@@ -42,18 +42,17 @@ class InventoryManagementTest(unittest.TestCase):
     before_csv: str = ""
     after_csv: str = ""
     twilio_stub: TwilioUtilStub = None
+    test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
 
     def setUp(self) -> InventoryMonitor:
         self.twilio_stub = TwilioUtilStub()
 
-        dotenv.load_dotenv()
+        dotenv.load_dotenv(".env")
 
-        test_dir = os.path.join(os.path.dirname(__file__), "test_data")
+        init_database(self.test_dir, os.getenv("DEFAULT_DB"), Client, True)
 
-        init_database(test_dir, os.getenv("DEFAULT_DB"), Client, True)
-
-        self.before_csv = os.path.join(test_dir, "inventory_before.csv")
-        self.after_csv = os.path.join(test_dir, "inventory_after.csv")
+        self.before_csv = os.path.join(self.test_dir, "inventory_before.csv")
+        self.after_csv = os.path.join(self.test_dir, "inventory_after.csv")
 
         self.monitor = InventoryMonitor(
             download_url="",
@@ -61,14 +60,18 @@ class InventoryManagementTest(unittest.TestCase):
             twilio_util=self.twilio_stub,
             time_between_inventory_checks=5,
             use_local_db=True,
-            log_dir=test_dir,
+            log_dir=self.test_dir,
             dry_run=False,
         )
 
         self.monitor.init()
 
     def tearDown(self) -> None:
+        dotenv.load_dotenv(".env")
+
         close_database()
+        remove_database(self.test_dir, os.getenv("DEFAULT_DB"))
+
         self.monitor = None
         self.twilio_stub = None
 
@@ -83,12 +86,14 @@ class InventoryManagementTest(unittest.TestCase):
         with db.client() as client:
             client_schema = ClientSchema().dump(client)
 
-        self.monitor.update_inventory(self.before_csv)
+        df = self.monitor.update_inventory(self.before_csv)
+        print(df)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        self.monitor.update_inventory(self.after_csv)
+        df = self.monitor.update_inventory(self.after_csv)
+        print(df)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
