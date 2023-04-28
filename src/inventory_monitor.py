@@ -66,6 +66,8 @@ class InventoryMonitor:
             log.print_ok(f"Found existing inventory file at {csv_file}")
             self.new_inventory = self._load_inventory(csv_file)
 
+        self.last_inventory = self.new_inventory.copy()
+
     def _is_time_to_check_inventory(self) -> bool:
         if self.last_inventory_update_time is None:
             return True
@@ -204,7 +206,7 @@ class InventoryMonitor:
         return dataframe
 
     def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
-        self.last_inventory = self.new_inventory
+        self.last_inventory = self.new_inventory.copy()
 
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
