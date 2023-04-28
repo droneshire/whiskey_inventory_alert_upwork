@@ -36,7 +36,7 @@ test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
 inventory_bot:
-	$(RUN_PY) executables.monitor_inventory --use-local-db --wait-time 10
+	$(RUN_PY) executables.monitor_inventory --use-local-db --wait-time 10 --dry-run
 
 create_test_db:
 	$(RUN_PY) database.executables.add_to_database --item 00009

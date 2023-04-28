@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import shutil
@@ -26,13 +27,14 @@ class InventoryMonitor:
         twilio_util: TwilioUtil,
         log_dir: str,
         use_local_db: bool = False,
+        inventory_csv_file: str = "",
         time_between_inventory_checks: int = None,
         dry_run: bool = False,
     ) -> None:
         self.download_url = download_url
         self.download_key = download_key
         self.twilio_util: TwilioUtil = twilio_util
-        self.csv_file = os.path.join(log_dir, "inventory.csv")
+        self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
         self.use_local_db = use_local_db
         self.time_between_inventory_checks = (
             time_between_inventory_checks or self.TIME_BETWEEN_INVENTORY_CHECKS
@@ -42,14 +44,16 @@ class InventoryMonitor:
         self.clients: T.List[str, ClientSchema] = {}
         self.db = None
 
-        self.last_inventory = pd.core.frame.DataFrame | None
-        self.new_inventory = pd.core.frame.DataFrame | None
+        self.last_inventory: pd.core.frame.DataFrame = None
+        self.new_inventory: pd.core.frame.DataFrame = None
 
         self.web = web2_client.Web2Client()
 
         self.last_inventory_update_time = None
 
-    def init(self) -> None:
+    def init(self, csv_file: str = None) -> None:
+        csv_file = csv_file or self.csv_file
+
         if self.use_local_db:
             client_names = ClientDb.get_client_names()
             log.print_ok(f"Found {len(client_names)} clients in local database")
@@ -58,8 +62,9 @@ class InventoryMonitor:
                 with db.client() as client:
                     self.clients[name] = ClientSchema().dump(client)
 
-        if os.path.isfile(self.csv_file):
-            self.last_inventory = self._load_inventory(self.csv_file)
+        if os.path.isfile(csv_file):
+            log.print_ok(f"Found existing inventory file at {csv_file}")
+            self.last_inventory = self._load_inventory(csv_file)
 
     def _is_time_to_check_inventory(self) -> bool:
         if self.last_inventory_update_time is None:
@@ -90,6 +95,9 @@ class InventoryMonitor:
 
         if not client:
             return
+
+        with ClientDb(name=client["name"]).client() as db:
+            db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
 
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
@@ -153,6 +161,9 @@ class InventoryMonitor:
 
             log.print_ok_arrow(message)
 
+            with ClientDb(client["name"]).client() as db:
+                db.updates_sent += 1
+
             if self.dry_run:
                 log.print_normal("Dry run, not sending SMS")
                 continue
@@ -165,7 +176,11 @@ class InventoryMonitor:
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
-    ) -> pd.core.frame.DataFrame | None:
+    ) -> pd.core.frame.DataFrame:
+        if dataframe is None or dataframe.empty:
+            log.print_warn("No inventory loaded")
+            return None
+
         inventory_codes = dataframe[self.INVENTORY_CODE_KEY]
 
         nc_code = item["nc_code"]
@@ -203,6 +218,7 @@ class InventoryMonitor:
                     log.print_fail(f"Error getting inventory: {e}")
 
             self.new_inventory: pd.core.frame.DataFrame = self._load_inventory(csv_file.name)
+            log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
 
         self.last_inventory_update_time = time.time()

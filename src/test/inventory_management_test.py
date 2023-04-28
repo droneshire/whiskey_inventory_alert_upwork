@@ -1,5 +1,6 @@
-# set up google python test framework
 import os
+import shutil
+import tempfile
 import time
 import typing as T
 import unittest
@@ -43,6 +44,7 @@ class InventoryManagementTest(unittest.TestCase):
     after_csv: str = ""
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
+    temp_csv_file: ""
 
     def setUp(self) -> InventoryMonitor:
         self.twilio_stub = TwilioUtilStub()
@@ -54,10 +56,14 @@ class InventoryManagementTest(unittest.TestCase):
         self.before_csv = os.path.join(self.test_dir, "inventory_before.csv")
         self.after_csv = os.path.join(self.test_dir, "inventory_after.csv")
 
+        self.temp_csv_file = tempfile.NamedTemporaryFile(delete=False)
+        shutil.copyfile(self.before_csv, self.temp_csv_file.name)
+
         self.monitor = InventoryMonitor(
             download_url="",
             download_key="",
             twilio_util=self.twilio_stub,
+            inventory_csv_file=self.temp_csv_file.name,
             time_between_inventory_checks=5,
             use_local_db=True,
             log_dir=self.test_dir,
@@ -68,6 +74,9 @@ class InventoryManagementTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         dotenv.load_dotenv(".env")
+
+        if os.path.isfile(self.temp_csv_file.name):
+            os.remove(self.temp_csv_file.name)
 
         close_database()
         remove_database(self.test_dir, os.getenv("DEFAULT_DB"))
@@ -115,8 +124,27 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
+        with db.client() as client:
+            updates_sent = client.updates_sent
+        self.assertEqual(updates_sent, 1)
+
     def test_inventory_update_time(self):
         self.assertTrue(self.monitor._is_time_to_check_inventory())
+
+    def test_new_and_last_inventory_check(self):
+        test_client_name = "test"
+
+        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        add_item(test_client_name, "00120")
+
+        db = ClientDb(test_client_name)
+        with db.client() as client:
+            client_schema = ClientSchema().dump(client)
+
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertTrue(self.monitor.new_inventory.equals(self.monitor.last_inventory))
 
 
 if __name__ == "__main__":

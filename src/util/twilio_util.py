@@ -23,7 +23,7 @@ class TwilioUtil:
         if self.dry_run:
             return
 
-        message = sms_client.messages.create(
+        message = self.sms_client.messages.create(
             body=content,
             from_=self.my_number,
             to=to_number,
