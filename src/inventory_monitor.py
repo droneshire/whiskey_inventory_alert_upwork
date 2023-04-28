@@ -64,7 +64,7 @@ class InventoryMonitor:
 
         if os.path.isfile(csv_file):
             log.print_ok(f"Found existing inventory file at {csv_file}")
-            self.last_inventory = self._load_inventory(csv_file)
+            self.new_inventory = self._load_inventory(csv_file)
 
     def _is_time_to_check_inventory(self) -> bool:
         if self.last_inventory_update_time is None:
