@@ -35,7 +35,10 @@ lint: check_format mypy pylint
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
-inventory_bot:
+inventory_bot_prod:
+	$(RUN_PY) executables.monitor_inventory --wait-time 60
+
+inventory_bot_dev:
 	$(RUN_PY) executables.monitor_inventory --use-local-db --wait-time 10 --dry-run
 
 create_test_db:
