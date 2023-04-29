@@ -4,6 +4,7 @@ Monitor the inventory of the store
 
 import argparse
 import os
+
 import dotenv
 
 from database.connect import init_database

@@ -1,6 +1,7 @@
-import requests
 import time
 import typing as T
+
+import requests
 
 from util import log, wait
 

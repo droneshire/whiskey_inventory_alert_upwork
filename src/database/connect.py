@@ -66,18 +66,36 @@ def ManagedSession():
         thread_safe_session_factory.remove()
 
 
+def remove_database(log_dir: str, db_name: str) -> None:
+    db_file = os.path.join(log_dir, "database", db_name)
+    if os.path.isfile(db_file):
+        log.print_warn(f"Deleting existing database!")
+        os.remove(db_file)
+
+
 def init_database(log_dir: str, db_name: str, db_model_class: T.Any, force: bool = False) -> None:
     db_file = os.path.join(log_dir, "database", db_name)
     sql_db = "sqlite:///" + db_file
 
+    if force:
+        remove_database(log_dir, db_name)
+
     make_sure_path_exists(db_file)
+
     engine = init_engine(sql_db)
     if database_exists(engine.url):
         log.print_bold(f"Found existing database")
-        if force:
-            log.print_warn(f"Deleting existing database due to force arg!")
-            os.remove(db_file)
     else:
         log.print_ok_blue(f"Creating new database!")
         db_model_class.metadata.create_all(bind=engine)
     init_session_factory()
+
+
+def close_database() -> None:
+    global engine, thread_safe_session_factory
+    if thread_safe_session_factory is not None:
+        thread_safe_session_factory.remove()
+        thread_safe_session_factory = None
+    if engine is not None:
+        engine.dispose()
+        engine = None

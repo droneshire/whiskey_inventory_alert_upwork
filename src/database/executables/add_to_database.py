@@ -1,10 +1,11 @@
 import argparse
-import dotenv
 import os
 import typing as T
 
-from database.client import ClientDb
+import dotenv
+
 from database.connect import init_database
+from database.helpers import add_client, add_item
 from database.models.client import Client
 from util import log
 
@@ -60,18 +61,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def add_client(name: str, email: str, phone_number: str) -> None:
-    """Add a client to the database"""
-    ClientDb.add_client(name, email, phone_number)
-
-
-def add_item(name: str, item_code: str) -> None:
-    """Add an item to the database"""
-    ClientDb.add_item(name, item_code)
-
-
 def main() -> None:
     args: argparse.Namespace = parse_args()
+
+    dotenv.load_dotenv(".env")
 
     init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client)
 

@@ -10,7 +10,7 @@ class TwilioUtil:
         self.dry_run = dry_run
         self.verbose = verbose
 
-        sms_client = Client(sid, auth_token)
+        self.sms_client = Client(sid, auth_token) if auth_token else None
         self.my_number = my_number
 
         if dry_run:
@@ -23,7 +23,7 @@ class TwilioUtil:
         if self.dry_run:
             return
 
-        message = sms_client.messages.create(
+        message = self.sms_client.messages.create(
             body=content,
             from_=self.my_number,
             to=to_number,

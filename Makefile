@@ -1,5 +1,5 @@
 PYTHON ?= python3
-PY_PATH=$(PWD)
+PY_PATH=$(PWD)/src
 RUN_PY = PYTHONPATH=$(PY_PATH) $(PYTHON) -m
 BLACK_CMD = $(RUN_PY) black --line-length 100 .
 # NOTE: exclude any virtual environment subdirectories here
@@ -33,15 +33,20 @@ isort:
 lint: check_format mypy pylint
 
 test:
-	$(RUN_PY) unittest discover -s test/ -p *_test.py -v
+	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
-creator_bot:
-	$(RUN_PY) bots.executables.account_creator
+inventory_bot_prod:
+	$(RUN_PY) executables.monitor_inventory --wait-time 60
 
-account_bot:
-	$(RUN_PY) bots.executables.account_bot --verbose
+inventory_bot_dev:
+	$(RUN_PY) executables.monitor_inventory --use-local-db --wait-time 10 --dry-run
 
-server:
-	$(RUN_PY) app --port 5000 --host localhost
+create_test_db:
+	$(RUN_PY) database.executables.add_to_database --item 00009
+	$(RUN_PY) database.executables.add_to_database --item 00005
+	$(RUN_PY) database.executables.add_to_database --item 00120
+	$(RUN_PY) database.executables.add_to_database --item 00137
+	$(RUN_PY) database.executables.add_to_database --item 70111
+
 
 .PHONY: install format check_format check_types pylint lint test creator_bot account_bot server

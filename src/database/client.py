@@ -1,9 +1,9 @@
-import dotenv
 import os
 import time
 import typing as T
-
 from contextlib import contextmanager
+
+import dotenv
 from sqlalchemy.sql import func
 
 from database.connect import ManagedSession
@@ -33,6 +33,8 @@ class ClientDb:
             assert name is not None, f"User {self.name} not in DB!"
 
             yield name
+
+            name.last_updated = func.now()
 
             try:
                 db.add(name)
