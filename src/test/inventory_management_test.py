@@ -42,6 +42,7 @@ class InventoryManagementTest(unittest.TestCase):
     monitor: InventoryMonitor = None
     before_csv: str = ""
     after_csv: str = ""
+    after_csv_many: str = ""
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     temp_csv_file: ""
@@ -55,6 +56,11 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.before_csv = os.path.join(self.test_dir, "inventory_before.csv")
         self.after_csv = os.path.join(self.test_dir, "inventory_after.csv")
+        self.after_csv_many = os.path.join(self.test_dir, "inventory_after_many_change.csv")
+
+        assert os.path.isfile(self.before_csv), f"Could not find {self.before_csv}"
+        assert os.path.isfile(self.after_csv), f"Could not find {self.after_csv}"
+        assert os.path.isfile(self.after_csv_many), f"Could not find {self.after_csv_many}"
 
         self.temp_csv_file = tempfile.NamedTemporaryFile(delete=False)
         shutil.copyfile(self.before_csv, self.temp_csv_file.name)
@@ -127,6 +133,34 @@ class InventoryManagementTest(unittest.TestCase):
         with db.client() as client:
             updates_sent = client.updates_sent
         self.assertEqual(updates_sent, 1)
+
+    def test_many_come_into_stock(self):
+        test_client_name = "test"
+
+        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        add_item(test_client_name, "00107")
+        add_item(test_client_name, "00111")
+        add_item(test_client_name, "00120")
+        add_item(test_client_name, "00127")
+
+        db = ClientDb(test_client_name)
+        with db.client() as client:
+            client_schema = ClientSchema().dump(client)
+
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        df = self.monitor.update_inventory(self.after_csv_many)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+
+        with db.client() as client:
+            updates_sent = client.updates_sent
+
+        self.assertEqual(updates_sent, 4)
 
     def test_inventory_update_time(self):
         self.assertTrue(self.monitor._is_time_to_check_inventory())

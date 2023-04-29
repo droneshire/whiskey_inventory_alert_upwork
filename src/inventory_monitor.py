@@ -101,6 +101,8 @@ class InventoryMonitor:
         with ClientDb(name=client["name"]).client() as db:
             db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
 
+        items_to_update = []
+
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
 
@@ -158,23 +160,32 @@ class InventoryMonitor:
                 log.print_normal(f"{nc_code} is below inventory threshold of {inventory_threshold}")
                 continue
 
-            message = f"ABC NC Inventory Alert\n"
-            message += f"{nc_code}: {brand_name} is now in stock with {item['Total Available']}"
+            items_to_update.append((nc_code, brand_name, item["Total Available"]))
 
-            log.print_ok_arrow(message)
+        message = f"NC ABC Inventory Alert\n"
+
+        for info in items_to_update:
+            nc_code, brand_name, total_available = info
+            message += f"{nc_code}: {brand_name} is now in stock with {total_available}\n"
 
             with ClientDb(client["name"]).client() as db:
                 db.updates_sent += 1
 
-            if self.dry_run:
-                log.print_normal("Dry run, not sending SMS")
-                continue
+        if not items_to_update:
+            log.print_normal("No items to update, not sending any alerts")
+            return
 
-            if client["phone_number"]:
-                self.twilio_util.send_sms(
-                    client["phone_number"],
-                    message,
-                )
+        log.print_ok_arrow(message)
+
+        if self.dry_run:
+            log.print_normal("Dry run, not sending SMS")
+            return
+
+        if client["phone_number"]:
+            self.twilio_util.send_sms(
+                client["phone_number"],
+                message,
+            )
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
