@@ -11,7 +11,7 @@ import pandas as pd
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import Item, ItemSchema
-from util import log, wait, web2_client
+from util import email, log, wait, web2_client
 from util.twilio_util import TwilioUtil
 
 
@@ -25,6 +25,7 @@ class InventoryMonitor:
         download_url: str,
         download_key: str,
         twilio_util: TwilioUtil,
+        admin_email: email.Email,
         log_dir: str,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
@@ -34,6 +35,7 @@ class InventoryMonitor:
         self.download_url = download_url
         self.download_key = download_key
         self.twilio_util: TwilioUtil = twilio_util
+        self.email: email.Email = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
         self.use_local_db = use_local_db
         self.time_between_inventory_checks = (
@@ -186,6 +188,9 @@ class InventoryMonitor:
                 client["phone_number"],
                 message,
             )
+
+        if client["email"] and self.email:
+            email.send_email([self.email], [client["email"]], "NC ABC Inventory Alert", message)
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame

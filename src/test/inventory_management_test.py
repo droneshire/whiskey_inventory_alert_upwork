@@ -69,6 +69,7 @@ class InventoryManagementTest(unittest.TestCase):
             download_url="",
             download_key="",
             twilio_util=self.twilio_stub,
+            admin_email=None,
             inventory_csv_file=self.temp_csv_file.name,
             time_between_inventory_checks=5,
             use_local_db=True,
