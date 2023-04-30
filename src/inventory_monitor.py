@@ -226,7 +226,8 @@ class InventoryMonitor:
         return dataframe
 
     def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
-        self.last_inventory = self.new_inventory.copy()
+        if self.new_inventory is not None:
+            self.last_inventory = self.new_inventory.copy()
 
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
