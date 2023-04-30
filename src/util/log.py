@@ -80,7 +80,6 @@ def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
 
     if create_if_not_exist:
         make_sure_path_exists(log_dir)
-    print(f"Logging to {log_dir}")
     return log_dir
 
 
