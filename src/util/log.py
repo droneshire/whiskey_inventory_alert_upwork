@@ -4,6 +4,8 @@ import sys
 import time
 import typing as T
 
+from util.file_util import make_sure_path_exists
+
 
 class Colors:
     HEADER = "\033[95m"
@@ -76,8 +78,8 @@ def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
     src_dir = os.path.dirname(util_dir)
     log_dir = os.path.join(os.path.dirname(src_dir), "logs", name)
 
-    if not os.path.isdir(log_dir) and create_if_not_exist:
-        os.mkdir(log_dir)
+    if create_if_not_exist:
+        make_sure_path_exists(log_dir)
 
     return log_dir
 
