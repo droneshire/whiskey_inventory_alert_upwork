@@ -19,6 +19,7 @@ def get_email_accounts_from_password(
 ) -> T.List[Email]:
     email_accounts = []
     for email_account in encrypted_emails:
+        assert email_account["password"], "Missing password!"
         email_password = decrypt_secret(encrypt_password, email_account["password"])
         email_accounts.append(
             Email(

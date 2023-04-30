@@ -5,6 +5,7 @@ Monitor the inventory of the store
 import argparse
 import getpass
 import os
+import typing as T
 
 import dotenv
 
@@ -14,7 +15,7 @@ from firebase.firebase_client import FirebaseClient
 from inventory_monitor import InventoryMonitor
 from util import log, wait
 from util.email import Email, get_email_accounts_from_password
-from util.security import decrypt_secret, ENCRYPT_PASSWORD_ENV_VAR
+from util.security import ENCRYPT_PASSWORD_ENV_VAR, decrypt_secret
 from util.twilio_util import TwilioUtil
 
 
@@ -47,6 +48,37 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def get_email_accounts() -> T.List[Email]:
+    """
+    We support multiple email accounts b/c we can be send rate limited
+    by gmail if we send too many emails from one account
+
+    We store the encrypted password in our environment, but we encrypt it
+    with an entered key so that we don't have to store the password in plaintext
+    """
+    email_credentials = [
+        {
+            "user": os.environ.get("ADMIN_EMAIL", ""),
+            "password": os.environ.get("ADMIN_EMAIL_PASSWORD_ENCRYPTED", ""),
+        }
+    ]
+
+    email_accounts = []
+    encrypt_password = os.environ.get(ENCRYPT_PASSWORD_ENV_VAR)
+    if not encrypt_password:
+        encrypt_password = getpass.getpass(prompt="Enter decryption password: ")
+    email_accounts = get_email_accounts_from_password(encrypt_password, email_credentials)
+
+    return email_accounts
+
+
+def get_credentials_file() -> str:
+    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    exec_dir = os.path.dirname(os.path.realpath(__file__))
+    src_dir = os.path.dirname(exec_dir)
+    return os.path.join(src_dir, credentials_file)
+
+
 def main() -> None:
     args: argparse.Namespace = parse_args()
 
@@ -64,21 +96,9 @@ def main() -> None:
         verbose=args.verbose,
     )
 
-    email_credentials = [
-        {
-            "user": os.environ.get("ADMIN_EMAIL", ""),
-            "password": os.environ.get("ADMIN_EMAIL_PASSWORD", ""),
-        }
-    ]
+    email_accounts = get_email_accounts()
 
-    email_accounts = []
-    encrypt_password = os.environ.get(ENCRYPT_PASSWORD_ENV_VAR)
-    if not encrypt_password:
-        encrypt_password = getpass.getpass(prompt="Enter decryption password: ")
-    email_accounts = get_email_accounts_from_password(encrypt_password, email_credentials)
-
-    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    firebase_client: FirebaseClient = FirebaseClient(credentials_file, client)
+    firebase_client: FirebaseClient = FirebaseClient(get_credentials_file())
 
     monitor: InventoryMonitor = InventoryMonitor(
         download_url=os.environ.get("INVENTORY_DOWNLOAD_URL"),

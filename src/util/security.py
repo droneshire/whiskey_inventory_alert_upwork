@@ -3,9 +3,9 @@ import base64
 import getpass
 import os
 
+from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
-from Crypto import Random
 
 ENCRYPT_PASSWORD_ENV_VAR = "ENCRYPT_PASSWORD"
 
