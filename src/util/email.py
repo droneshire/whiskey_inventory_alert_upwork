@@ -3,6 +3,7 @@ import typing as T
 import yagmail
 
 from util import log
+from util.security import decrypt_secret
 
 
 class Email(T.TypedDict):
@@ -33,7 +34,7 @@ def send_email_raw(
     email: Email,
     to_addresses: T.List[str],
     subject: str,
-    content: T.List[str],
+    content: str,
     attachments: T.List[str] = None,
     verbose: bool = False,
 ) -> None:
@@ -56,7 +57,7 @@ def send_email(
     emails: T.List[Email],
     to_addresses: T.List[str],
     subject: str,
-    content: T.List[str],
+    content: str,
     attachments: T.List[str] = None,
     verbose: bool = False,
 ) -> None:
