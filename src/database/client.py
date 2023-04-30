@@ -65,8 +65,8 @@ class ClientDb:
     @staticmethod
     def add_client(
         name: str,
-        email: str,
-        phone_number: str,
+        email: str = "",
+        phone_number: str = "",
         db_str: str = DEFAULT_DB,
     ) -> None:
         with ManagedSession() as db:
@@ -94,6 +94,7 @@ class ClientDb:
         supplier: str = None,
         supplier_allotment: int = None,
         broker_name: str = None,
+        is_tracking: bool = True,
         db_str: str = DEFAULT_DB,
     ) -> None:
         with ManagedSession() as db:
@@ -127,5 +128,7 @@ class ClientDb:
                 item.supplier_allotment = supplier_allotment
             if broker_name is not None:
                 item.broker_name = broker_name
+
+            item.is_tracking = is_tracking
 
             db.add(item)

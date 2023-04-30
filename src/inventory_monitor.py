@@ -57,17 +57,20 @@ class InventoryMonitor:
         csv_file = csv_file or self.csv_file
 
         if self.use_local_db:
-            client_names = ClientDb.get_client_names()
-            log.print_ok(f"Found {len(client_names)} clients in local database")
-            for name in client_names:
-                db = ClientDb(name)
-                with db.client() as client:
-                    self.clients[name] = ClientSchema().dump(client)
+            self._update_clients_from_db()
 
         if os.path.isfile(csv_file):
             log.print_ok(f"Found existing inventory file at {csv_file}")
             self.new_inventory = self._load_inventory(csv_file)
             self.last_inventory = self.new_inventory.copy()
+
+    def _update_clients_from_db(self) -> None:
+        client_names = ClientDb.get_client_names()
+        log.print_ok(f"Found {len(client_names)} clients in local database")
+        for name in client_names:
+            db = ClientDb(name)
+            with db.client() as client:
+                self.clients[name] = ClientSchema().dump(client)
 
     def _is_time_to_check_inventory(self) -> bool:
         if self.last_inventory_update_time is None:
@@ -182,13 +185,13 @@ class InventoryMonitor:
             log.print_normal("Dry run, not sending SMS")
             return
 
-        if client["phone_number"]:
+        if client["phone_number"] and client["phone_alerts"]:
             self.twilio_util.send_sms(
                 client["phone_number"],
                 message,
             )
 
-        if client["email"] and self.email:
+        if client["email"] and client["email_alerts"] and self.email:
             email.send_email(
                 emails=[self.email],
                 to_addresses=[client["email"]],
@@ -253,6 +256,8 @@ class InventoryMonitor:
             log.print_fail("No clients to check inventory for")
             return
 
+        self._update_clients_from_db()
+
         self.update_inventory(self.download_url)
 
         for name, client in self.clients.items():
@@ -262,4 +267,5 @@ class InventoryMonitor:
     def run(self) -> None:
         if not self._is_time_to_check_inventory():
             return
+
         self._check_inventory()
