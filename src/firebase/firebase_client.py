@@ -2,15 +2,18 @@ import typing as T
 
 import firebase_admin
 
+from firebase_admin import firestore
+from firebase_admin import credentials
+
 from database.models.client import ClientSchema
 
 
 class FirebaseClient:
     def __init__(self, credentials_file: str) -> None:
         if not firebase_admin._apps:
-            auth = firebase_admin.credentials.Certificate(credentials_file)
+            auth = credentials.Certificate(credentials_file)
             firebase_admin.initialize_app(auth)
-        self.db = firebase_admin.firestore.client()
+        self.db = firestore.client()
 
         self.clients_ref = self.db.collection("clients")
 

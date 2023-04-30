@@ -76,7 +76,8 @@ def get_credentials_file() -> str:
     credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     exec_dir = os.path.dirname(os.path.realpath(__file__))
     src_dir = os.path.dirname(exec_dir)
-    return os.path.join(src_dir, credentials_file)
+    top_dir = os.path.dirname(src_dir)
+    return os.path.join(top_dir, credentials_file)
 
 
 def main() -> None:
