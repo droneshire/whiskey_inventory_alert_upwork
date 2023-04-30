@@ -25,12 +25,16 @@ In this script, the database will be accessed using [Firebase authenticated API 
 
 User will also be able to edit the database directly in the Firebase service manager in addition to making changes directly through the website.
 
+The bot also has a local database that can either be used as the source of truth (using the `--use-local-db` argument), or will mirror what is seen in Firebase. This provides some redundancy and allows for easy migration should we switch DB hosts in the future.
+
 ## Frontend: Assign Inventory Watch to Clients
 The Firebase backed frontend will be a separate repo of a React/Typescript based website. Link to be provided once it is developed.
 
-The frontend will have a simple interface, that will require Google authentication to access.
+The frontend will have a simple interface that will require Google authentication to access.
 
 It will allow the user to input new clients, their contact info, and the associated product codes to watch and alert on.
+
+Repo can be found here: https://github.com/droneshire/whiskey_inventory_firebase_client
 
 ### Icons
 - https://abc.nc.gov/Images/Icons/ABC%20Warehouse%20Icon.png
@@ -38,6 +42,6 @@ It will allow the user to input new clients, their contact info, and the associa
 
 ## Hosting
 
-The backend can be hosted on any server that supports python3 and has internet access. General backend setup will be the responsibility of the host so cost and maintenance are beyond the scope of this project.
+The backend can be hosted on any server that supports python3 and has internet access. General backend setup will be the responsibility of the host so cost and maintenance are beyond the scope of this project. My recommendation is using a Digital Ocean Droplet for about $6/month. Setup is quick and easy.
 
 The frontend will be a Firebase web app, so hosting will be managed through Google's Firebase hosting service (which is free as long as database access is reasonable, on the order of less than 1000 per day).
