@@ -11,7 +11,6 @@ import dotenv
 
 from database.connect import init_database
 from database.models.client import Client
-from firebase.firebase_client import FirebaseClient
 from inventory_monitor import InventoryMonitor
 from util import log, wait
 from util.email import Email, get_email_accounts_from_password
@@ -99,14 +98,13 @@ def main() -> None:
 
     email_accounts = get_email_accounts()
 
-    firebase_client: FirebaseClient = FirebaseClient(get_credentials_file())
-
     monitor: InventoryMonitor = InventoryMonitor(
         download_url=os.environ.get("INVENTORY_DOWNLOAD_URL"),
         download_key=os.environ.get("INVENTORY_DOWNLOAD_KEY"),
         twilio_util=twilio_util,
         admin_email=email_accounts[0],
         log_dir=args.log_dir,
+        credentials_file=get_credentials_file(),
         use_local_db=args.use_local_db,
         dry_run=args.dry_run,
     )
@@ -115,8 +113,6 @@ def main() -> None:
 
     while True:
         monitor.run()
-        if not args.use_local_db:
-            firebase_client.run()
         wait.wait(args.wait_time)
 
 

@@ -1,4 +1,5 @@
 import datetime
+import deepdiff
 import json
 import os
 import shutil
@@ -11,6 +12,7 @@ import pandas as pd
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import Item, ItemSchema
+from firebase.firebase_client import FirebaseClient
 from util import email, log, wait, web2_client
 from util.twilio_util import TwilioUtil
 
@@ -27,6 +29,7 @@ class InventoryMonitor:
         twilio_util: TwilioUtil,
         admin_email: T.Optional[email.Email],
         log_dir: str,
+        credentials_file: str,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
         time_between_inventory_checks: int = None,
@@ -53,11 +56,14 @@ class InventoryMonitor:
 
         self.last_inventory_update_time = None
 
+        self.firebase_client: FirebaseClient = (
+            FirebaseClient(credentials_file) if not use_local_db else None
+        )
+
     def init(self, csv_file: str = None) -> None:
         csv_file = csv_file or self.csv_file
 
-        if self.use_local_db:
-            self._update_clients_from_db()
+        self._update_clients_from_db()
 
         if os.path.isfile(csv_file):
             log.print_ok(f"Found existing inventory file at {csv_file}")
@@ -123,7 +129,24 @@ class InventoryMonitor:
                 log.print_normal(f"Did not find {nc_code} in inventory")
                 continue
 
+            with ClientDb(client["name"]).client() as db:
+                before_client: ClientSchema = ClientSchema().dump(db)
+
             self._update_local_db_item(client["name"], item)
+
+            with ClientDb(client["name"]).client() as db:
+                after_client: ClientSchema = ClientSchema().dump(db)
+
+            diff = deepdiff.DeepDiff(
+                before_client,
+                after_client,
+                ignore_order=True,
+                ignore_numeric_type_changes=True,
+                ignore_order_func=True,
+            )
+            if diff:
+                log.print_ok_arrow(f"Found changes for {client['name']}")
+                self.firebase_client.update_items(client["name"])
 
             if item["Total Available"] == 0:
                 log.print_normal(f"{nc_code} is out of stock")
@@ -256,9 +279,9 @@ class InventoryMonitor:
             log.print_fail("No clients to check inventory for")
             return
 
-        self._update_clients_from_db()
-
         self.update_inventory(self.download_url)
+
+        self._update_clients_from_db()
 
         for name, client in self.clients.items():
             log.print_normal(f"Checking inventory for {name}")
