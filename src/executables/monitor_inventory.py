@@ -3,14 +3,18 @@ Monitor the inventory of the store
 """
 
 import argparse
+import getpass
 import os
 
 import dotenv
 
 from database.connect import init_database
 from database.models.client import Client
+from firebase.firebase_client import FirebaseClient
 from inventory_monitor import InventoryMonitor
 from util import log, wait
+from util.email import Email, get_email_accounts_from_password
+from util.security import decrypt_secret, ENCRYPT_PASSWORD_ENV_VAR
 from util.twilio_util import TwilioUtil
 
 
@@ -50,20 +54,37 @@ def main() -> None:
 
     log.setup_log(args.log_level, args.log_dir, "db_convert")
 
-    init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client, args.force_update)
+    init_database(args.log_dir, os.environ.get("DEFAULT_DB"), Client, args.force_update)
 
     twilio_util = TwilioUtil(
-        my_number=os.getenv("TWILIO_FROM_SMS_NUMBER"),
-        auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
-        sid=os.getenv("TWILIO_ACCOUNT_SID"),
+        my_number=os.environ.get("TWILIO_FROM_SMS_NUMBER"),
+        auth_token=os.environ.get("TWILIO_AUTH_TOKEN"),
+        sid=os.environ.get("TWILIO_ACCOUNT_SID"),
         dry_run=args.dry_run,
         verbose=args.verbose,
     )
 
+    email_credentials = [
+        {
+            "user": os.environ.get("ADMIN_EMAIL", ""),
+            "password": os.environ.get("ADMIN_EMAIL_PASSWORD", ""),
+        }
+    ]
+
+    email_accounts = []
+    encrypt_password = os.environ.get(ENCRYPT_PASSWORD_ENV_VAR)
+    if not encrypt_password:
+        encrypt_password = getpass.getpass(prompt="Enter decryption password: ")
+    email_accounts = get_email_accounts_from_password(encrypt_password, email_credentials)
+
+    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    firebase_client: FirebaseClient = FirebaseClient(credentials_file, client)
+
     monitor: InventoryMonitor = InventoryMonitor(
-        download_url=os.getenv("INVENTORY_DOWNLOAD_URL"),
-        download_key=os.getenv("INVENTORY_DOWNLOAD_KEY"),
+        download_url=os.environ.get("INVENTORY_DOWNLOAD_URL"),
+        download_key=os.environ.get("INVENTORY_DOWNLOAD_KEY"),
         twilio_util=twilio_util,
+        admin_email=email_accounts[0],
         log_dir=args.log_dir,
         use_local_db=args.use_local_db,
         dry_run=args.dry_run,
@@ -73,6 +94,8 @@ def main() -> None:
 
     while True:
         monitor.run()
+        if not args.use_local_db:
+            firebase_client.run()
         wait.wait(args.wait_time)
 
 

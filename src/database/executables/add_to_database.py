@@ -19,9 +19,9 @@ class TestClient(T.NamedTuple):
 dotenv.load_dotenv(".env")
 
 TEST_CLIENT = TestClient(
-    os.getenv("TEST_CLIENT_NAME"),
-    os.getenv("TEST_CLIENT_EMAIL"),
-    os.getenv("TEST_CLIENT_PHONE"),
+    os.environ.get("TEST_CLIENT_NAME", ""),
+    os.environ.get("TEST_CLIENT_EMAIL", ""),
+    os.environ.get("TEST_CLIENT_PHONE", ""),
 )
 
 
@@ -65,8 +65,8 @@ def main() -> None:
     args: argparse.Namespace = parse_args()
 
     dotenv.load_dotenv(".env")
-
-    init_database(args.log_dir, os.getenv("DEFAULT_DB"), Client)
+    database_name = os.environ.get("DEFAULT_DB", "")
+    init_database(args.log_dir, database_name, Client)
 
     add_client(args.name, args.email, args.phone_number)
 

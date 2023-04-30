@@ -25,11 +25,6 @@ class Web2Client:
 
         self.requests = requests
 
-        if verbose:
-            log.print_bold(
-                f"Web2Client IP (proxy={use_proxy}): {self.requests.get(MY_IP_URL).text.strip()}"
-            )
-
     def _get_request(
         self,
         url: str,
@@ -38,7 +33,7 @@ class Web2Client:
         timeout: float = 5.0,
     ) -> T.Any:
         if self.rate_limit_delay > 0.0:
-            wait(self.rate_limit_delay)
+            wait.wait(self.rate_limit_delay)
 
         try:
             return self.requests.request(
@@ -62,7 +57,7 @@ class Web2Client:
             return {}
 
         if delay > 0.0:
-            wait(delay)
+            wait.wait(delay)
 
         try:
             return self.requests.request(

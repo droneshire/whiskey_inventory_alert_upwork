@@ -25,7 +25,7 @@ class InventoryMonitor:
         download_url: str,
         download_key: str,
         twilio_util: TwilioUtil,
-        admin_email: email.Email,
+        admin_email: T.Optional[email.Email],
         log_dir: str,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
@@ -35,7 +35,7 @@ class InventoryMonitor:
         self.download_url = download_url
         self.download_key = download_key
         self.twilio_util: TwilioUtil = twilio_util
-        self.email: email.Email = admin_email
+        self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
         self.use_local_db = use_local_db
         self.time_between_inventory_checks = (
@@ -43,7 +43,7 @@ class InventoryMonitor:
         )
         self.dry_run = dry_run
 
-        self.clients: T.List[str, ClientSchema] = {}
+        self.clients: T.Dict[str, ClientSchema] = {}
         self.db = None
 
         self.last_inventory: pd.core.frame.DataFrame = None
@@ -190,7 +190,12 @@ class InventoryMonitor:
             )
 
         if client["email"] and self.email:
-            email.send_email([self.email], [client["email"]], "NC ABC Inventory Alert", message)
+            email.send_email(
+                emails=[self.email],
+                to_addresses=[client["email"]],
+                subject="NC ABC Inventory Alert",
+                content=message,
+            )
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
@@ -235,7 +240,7 @@ class InventoryMonitor:
                 except Exception as e:
                     log.print_fail(f"Error getting inventory: {e}")
 
-            self.new_inventory: pd.core.frame.DataFrame = self._load_inventory(csv_file.name)
+            self.new_inventory = self._load_inventory(csv_file.name)
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
 

@@ -45,9 +45,9 @@ class InventoryManagementTest(unittest.TestCase):
     after_csv_many: str = ""
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
-    temp_csv_file: ""
+    temp_csv_file: tempfile.NamedTemporaryFile = None
 
-    def setUp(self) -> InventoryMonitor:
+    def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
 
         dotenv.load_dotenv(".env")
