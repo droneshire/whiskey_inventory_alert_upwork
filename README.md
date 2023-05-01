@@ -6,8 +6,6 @@ There are two parts to this project, a frontend and a backend. This project repr
 
 # Backend: Inventory Monitoring and SMS Alerts
 
-![image](https://user-images.githubusercontent.com/2355438/233558659-06ae0128-f788-4f0f-a594-2b26f459d32e.png)
-
 ## Inventory Monitoring
 - Inventory is monitored from this [site](https://abc.nc.gov/StoresBoards/Stocks)
 - Inventory is updated every 15 minutes
@@ -18,7 +16,7 @@ This script monitors the inventory and creates alerts based on a mapping of clie
 
 The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and sends the text message alert to the associated client. The initial setup will be pay as you go plan on Twilio, and should be fairly reasonable costwise.
 
-# Setup
+## Setup
 
 Set up a linux device to deploy the inventory manager bot to.
 
@@ -31,7 +29,16 @@ Create an ssh key for github and add it as a [Deploy Key](https://github.com/dro
 ```
 ssh-keygen -t ed25519 -C <YOUR EMAIL> -f /root/.ssh/id_ed25519 -q -N ""
 ```
+Clone the repo once the deploy key has been added and change directories into the repo root directory.
 
+In the repo root directory:
+```
+python -m pip install --user virtualenv
+pip install wheel
+make init
+source ./venv/bin/activate
+make install
+```
 Create a `.env` file and either upload it to the root of the repo or create it directly there with the following contents:
 
 You'll need to replace anything within the `<>` with valid string entries e.g. `ADMIN_NAME="John Doe"`
@@ -60,12 +67,15 @@ ADMIN_EMAIL="<INSERT YOUR ADMIN EMAIL HERE>"
 ADMIN_EMAIL_PASSWORD_ENCRYPTED="<INSERT YOUR ENCRYPTED ADMIN EMAIL PASSWORD HERE>"
 
 # Firebase settings
-GOOGLE_APPLICATION_CREDENTIALS="<INSERT YOUR FIREBASE SERVICE ACCOUNT JSON FILENAME HERE>"
+GOOGLE_APPLICATION_CREDENTIALS="firebase_service_account.json"
 
 ```
+Finally, add a `firebase_service_account.json` to the repo root directory. The contents of this file can be found [here](https://console.firebase.google.com/u/0/project/inventory-860f0/settings/serviceaccounts/adminsdk).
 
 # Database
-The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow
+The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow clients to configure their settings as desired.
+
+![image](https://user-images.githubusercontent.com/2355438/233558659-06ae0128-f788-4f0f-a594-2b26f459d32e.png)
 
 In this script, the database will be accessed using [Firebase authenticated API calls](https://firebase.google.com/docs/auth/web/start) and will listen to database changes made by the user on the frontend website.
 
