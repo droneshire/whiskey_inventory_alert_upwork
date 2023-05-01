@@ -16,7 +16,7 @@ from database.client import ClientDb
 from database.helpers import add_client, add_item, track_item
 from database.models.client import ClientSchema
 from database.models.item import Item
-from firebase import types
+from firebase import defs
 from util import log
 
 
@@ -58,7 +58,7 @@ class FirebaseClient:
         log.print_warn("Received collection snapshots")
         for change in changed_docs:
             doc: DocumentSnapshot = change.document
-            db_dict: types.Client = doc.to_dict()
+            db_dict: defs.Client = doc.to_dict()
 
             log.print_ok_blue_arrow(f"Received collection snapshot: {doc.id}")
             if self.verbose:
@@ -67,7 +67,7 @@ class FirebaseClient:
                 )
 
             if not db_dict:
-                db_dict = copy.deepcopy(types.NULL_CLIENT)
+                db_dict = copy.deepcopy(defs.NULL_CLIENT)
                 log.print_normal(
                     f"Initializing new client {doc.id} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
                 )
@@ -114,9 +114,9 @@ class FirebaseClient:
         add_client(doc.id, email, phone_number)
 
         for nc_code, info in db_dict["inventory"]["items"].items():
-            if info["action"] == types.Actions.TRACKING.value:
+            if info["action"] == defs.Actions.TRACKING.value:
                 add_item(doc.id, nc_code)
-            elif info["action"] == types.Actions.NOT_TRACKING.value:
+            elif info["action"] == defs.Actions.NOT_TRACKING.value:
                 track_item(doc.id, nc_code, False)
 
             with ClientDb(doc.id).item(nc_code) as item:
