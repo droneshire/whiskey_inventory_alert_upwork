@@ -66,6 +66,9 @@ class FirebaseClient:
                 self.clients_ref.document(doc.id).set(json.loads(json.dumps(new_db_dict)))
             self.db_cache[doc.id] = copy.deepcopy(db_dict)
 
+            if doc.id not in self.client_watcher:
+                self.client_watcher[doc.id] = doc.on_snapshot(self._document_snapshot_handler)
+
     def _document_snapshot_handler(
         self,
         document_snapshots: T.List[DocumentSnapshot],
