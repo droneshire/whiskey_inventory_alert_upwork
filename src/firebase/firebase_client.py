@@ -21,11 +21,12 @@ from util import log
 
 
 class FirebaseClient:
-    def __init__(self, credentials_file: str) -> None:
+    def __init__(self, credentials_file: str, verbose: bool = False) -> None:
         if not firebase_admin._apps:
             auth = credentials.Certificate(credentials_file)
             firebase_admin.initialize_app(auth)
         self.db = firestore.client()
+        self.verbose = verbose
 
         self.clients_ref = self.db.collection("clients")
 
@@ -46,13 +47,16 @@ class FirebaseClient:
         changed_docs: T.List[DocumentChange],
         read_time: T.Any,
     ) -> None:
-        log.print_warn("\nReceived collection snapshots")
+        log.print_warn("Received collection snapshots")
         for change in changed_docs:
             doc: DocumentSnapshot = change.document
             db_dict: types.Client = doc.to_dict()
 
-            log.print_ok_blue(f"Received collection snapshot: {doc.id}")
-            log.print_ok_blue(f"Collection data: {json.dumps(db_dict, indent=4, sort_keys=True)}")
+            log.print_ok_blue_arrow(f"Received collection snapshot: {doc.id}")
+            if self.verbose:
+                log.print_ok_blue(
+                    f"Collection data: {json.dumps(db_dict, indent=4, sort_keys=True)}"
+                )
 
             if not db_dict:
                 new_db_dict = copy.deepcopy(types.NULL_CLIENT)
@@ -72,14 +76,14 @@ class FirebaseClient:
         db_dict = doc.to_dict()
         old_db_dict = copy.deepcopy(db_dict)
 
-        log.print_warn(f"\nReceived document snapshot: {doc.id}")
-        log.print_ok_blue(f"Document data: {json.dumps(doc.to_dict(), indent=4, sort_keys=True)}")
+        log.print_warn(f"Received document snapshot: {doc.id}")
+        if self.verbose:
+            log.print_ok_blue(
+                f"Document data: {json.dumps(doc.to_dict(), indent=4, sort_keys=True)}"
+            )
 
         try:
             email = db_dict["preferences"]["notifications"]["email"]["email"]
-            if not email:
-                log.print_fail(f"Client {doc.id} is not activated!")
-                return
         except KeyError:
             log.print_fail(f"Client {doc.id} is not activated!")
             return
@@ -122,8 +126,8 @@ class FirebaseClient:
                 f"Updated client {doc.id} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
             )
             self.clients_ref.document(doc.id).set(json.loads(json.dumps(db_dict)))
-        else:
-            log.print_warn(f"Client {doc.id} already up to date in database!")
+        elif self.verbose:
+            log.print_normal(f"Client {doc.id} is up to date!")
 
     def check_and_maybe_update_items(self, client: str, item_code: str) -> None:
         items = self.db_cache.get(client, {}).get("inventory", {}).get("items", [])
@@ -161,5 +165,5 @@ class FirebaseClient:
                 f"Updated client {client} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
             )
             self.clients_ref.document(client).set(json.loads(json.dumps(db_dict)))
-        else:
-            log.print_warn(f"Client {client} already up to date in database!")
+        elif self.verbose:
+            log.print_normal(f"Client {client} is up to date!")

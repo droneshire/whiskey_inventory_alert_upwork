@@ -10,6 +10,7 @@ from util.file_util import make_sure_path_exists
 class Colors:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
     OKGREEN = "\033[92m"
     WARNING = "\033[93m"
     FAIL = "\033[31m"
@@ -160,20 +161,26 @@ def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
 
 print_ok_blue = make_formatter_printer(Colors.OKBLUE)
 print_ok = make_formatter_printer(Colors.OKGREEN)
+print_bright = make_formatter_printer(Colors.OKCYAN)
 print_warn = make_formatter_printer(Colors.WARNING)
 print_fail = make_formatter_printer(Colors.FAIL)
 print_bold = make_formatter_printer(Colors.BOLD)
 print_normal = make_formatter_printer(Colors.ENDC)
+print_normal_arrow = make_formatter_printer(Colors.ENDC, prefix=Prefixes.ARROW)
 print_ok_arrow = make_formatter_printer(Colors.OKGREEN, prefix=Prefixes.ARROW)
 print_ok_blue_arrow = make_formatter_printer(Colors.OKBLUE, prefix=Prefixes.ARROW)
 print_fail_arrow = make_formatter_printer(Colors.FAIL, prefix=Prefixes.ARROW)
 
 format_ok_blue = make_formatter_printer(Colors.OKBLUE, return_formatter=True)
 format_ok = make_formatter_printer(Colors.OKGREEN, return_formatter=True)
+format_bright = make_formatter_printer(Colors.OKCYAN, return_formatter=True)
 format_warn = make_formatter_printer(Colors.WARNING, return_formatter=True)
 format_fail = make_formatter_printer(Colors.FAIL, return_formatter=True)
 format_bold = make_formatter_printer(Colors.BOLD, return_formatter=True)
 format_normal = make_formatter_printer(Colors.ENDC, return_formatter=True)
+format_normal_arrow = make_formatter_printer(
+    Colors.ENDC, prefix=Prefixes.ARROW, return_formatter=True
+)
 format_ok_arrow = make_formatter_printer(
     Colors.OKGREEN, prefix=Prefixes.ARROW, return_formatter=True
 )

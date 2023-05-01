@@ -68,11 +68,13 @@ class ClientDb:
         email: str = "",
         phone_number: str = "",
         db_str: str = DEFAULT_DB,
+        verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
             if client is not None:
-                log.print_warn(f"Skipping {name} add, already in db")
+                if verbose:
+                    log.print_warn(f"Skipping {name} add, already in db")
                 return
 
             log.print_ok_arrow(f"Created {name} client")
@@ -96,6 +98,7 @@ class ClientDb:
         broker_name: str = None,
         is_tracking: bool = True,
         db_str: str = DEFAULT_DB,
+        verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
@@ -104,7 +107,8 @@ class ClientDb:
                 return
 
             if nc_code in [i.nc_code for i in client.items]:
-                log.print_warn(f"Skipping add item, already in client!")
+                if verbose:
+                    log.print_warn(f"Skipping add {nc_code}, already in client!")
                 return
 
             log.print_ok_arrow(f"Created item [{nc_code}] for {client.name}")

@@ -13,7 +13,7 @@ from database.connect import init_database
 from database.models.client import Client
 from inventory_monitor import InventoryMonitor
 from util import log, wait
-from util.email import Email, get_email_accounts_from_password
+from util.email import Email
 from util.security import ENCRYPT_PASSWORD_ENV_VAR, decrypt_secret
 from util.twilio_util import TwilioUtil
 
@@ -51,22 +51,15 @@ def get_email_accounts() -> T.List[Email]:
     """
     We support multiple email accounts b/c we can be send rate limited
     by gmail if we send too many emails from one account
-
-    We store the encrypted password in our environment, but we encrypt it
-    with an entered key so that we don't have to store the password in plaintext
     """
-    email_credentials = [
-        {
-            "user": os.environ.get("ADMIN_EMAIL", ""),
-            "password": os.environ.get("ADMIN_EMAIL_PASSWORD_ENCRYPTED", ""),
-        }
-    ]
 
-    email_accounts = []
-    encrypt_password = os.environ.get(ENCRYPT_PASSWORD_ENV_VAR)
-    if not encrypt_password:
-        encrypt_password = getpass.getpass(prompt="Enter decryption password: ")
-    email_accounts = get_email_accounts_from_password(encrypt_password, email_credentials)
+    email_accounts = [
+        Email(
+            address=os.environ.get("ADMIN_EMAIL", ""),
+            password=os.environ.get("ADMIN_EMAIL_PASSWORD", ""),
+            quiet=False,
+        ),
+    ]
 
     return email_accounts
 
@@ -107,6 +100,7 @@ def main() -> None:
         credentials_file=get_credentials_file(),
         use_local_db=args.use_local_db,
         dry_run=args.dry_run,
+        verbose=args.verbose,
     )
 
     monitor.init()

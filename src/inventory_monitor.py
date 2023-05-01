@@ -34,6 +34,7 @@ class InventoryMonitor:
         inventory_csv_file: str = "",
         time_between_inventory_checks: int = None,
         dry_run: bool = False,
+        verbose: bool = False,
     ) -> None:
         self.download_url = download_url
         self.download_key = download_key
@@ -45,6 +46,7 @@ class InventoryMonitor:
             time_between_inventory_checks or self.TIME_BETWEEN_INVENTORY_CHECKS
         )
         self.dry_run = dry_run
+        self.verbose = verbose
 
         self.clients: T.Dict[str, ClientSchema] = {}
         self.db = None
@@ -57,7 +59,7 @@ class InventoryMonitor:
         self.last_inventory_update_time = None
 
         self.firebase_client: FirebaseClient = (
-            FirebaseClient(credentials_file) if not use_local_db else None
+            FirebaseClient(credentials_file, verbose) if not use_local_db else None
         )
 
     def init(self, csv_file: str = None) -> None:
@@ -108,7 +110,8 @@ class InventoryMonitor:
                 self.firebase_client.check_and_maybe_update_items(name, item["nc_code"])
 
     def check_client_inventory(self, client: ClientSchema) -> None:
-        log.print_bold(f"Checking {json.dumps(client, indent=4)}")
+        if self.verbose:
+            log.print_bold(f"Checking {json.dumps(client, indent=4)}")
 
         if not client:
             return
@@ -131,13 +134,13 @@ class InventoryMonitor:
             )
 
             if item is None:
-                log.print_normal(f"Did not find {nc_code} in inventory")
+                log.print_normal_arrow(f"Did not find {nc_code} in inventory")
                 continue
 
             self._update_local_db_item(client["name"], item)
 
             if item["Total Available"] == 0:
-                log.print_normal(f"{nc_code} is out of stock")
+                log.print_normal_arrow(f"{nc_code} is out of stock")
                 continue
 
             previous_item: pd.core.frame.DataFrame = self._get_item_from_inventory(
@@ -160,19 +163,24 @@ class InventoryMonitor:
 
             brand_name = item["Brand Name"]
 
-            log.print_ok_blue(
-                f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item['Total Available']}"
-            )
+            if self.verbose:
+                log.print_ok_blue_arrow(
+                    f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item['Total Available']}"
+                )
             log.print_ok_blue_arrow(f"{nc_code} {brand_name} change: {delta_str} units")
 
             if previous_item is not None and previous_available != 0:
-                log.print_normal(f"No alert, {nc_code} was previously in stock")
+                if self.verbose:
+                    log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
                 continue
 
             inventory_threshold = client["threshold_inventory"]
 
             if delta < inventory_threshold:
-                log.print_normal(f"{nc_code} is below inventory threshold of {inventory_threshold}")
+                if self.verbose:
+                    log.print_normal_arrow(
+                        f"{nc_code} is below inventory threshold of {inventory_threshold}"
+                    )
                 continue
 
             items_to_update.append((nc_code, brand_name, item["Total Available"]))
@@ -187,17 +195,18 @@ class InventoryMonitor:
                 db.updates_sent += 1
 
         if not items_to_update:
-            log.print_normal("No items to update, not sending any alerts")
+            if self.verbose:
+                log.print_normal_arrow("No items to update, not sending any alerts")
             return
 
         log.print_ok_arrow(message)
 
         if self.dry_run:
-            log.print_normal("Dry run, not sending SMS")
+            log.print_normal_arrow("Dry run, not sending SMS")
             return
 
         if not item_schema["is_tracking"]:
-            log.print_normal("Not sending alert, item is not being tracked")
+            log.print_normal_arrow("Not sending alert, item is not being tracked")
             return
 
         if client["phone_number"] and client["phone_alerts"]:
@@ -267,15 +276,18 @@ class InventoryMonitor:
         return self.new_inventory
 
     def _check_inventory(self) -> None:
+        self._update_clients_from_db()
+
         if not self.clients:
             log.print_fail("No clients to check inventory for")
             return
 
-        self._update_clients_from_db()
-
         for name, client in self.clients.items():
-            log.print_normal(f"Checking inventory for {name}")
+            log.print_bold(f"{'─' * 80}")
+            log.print_bold(f"Checking inventory for {name}...")
             self.check_client_inventory(client)
+
+        log.print_bold(f"{'─' * 80}")
 
         self._check_and_update_firebase_should_be_updated()
 
