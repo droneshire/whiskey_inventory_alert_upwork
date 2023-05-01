@@ -13,7 +13,7 @@ from google.cloud.firestore_v1.watch import DocumentChange, Watch
 from sqlalchemy.sql import func
 
 from database.client import ClientDb
-from database.helpers import add_client, add_item
+from database.helpers import add_client, add_item, track_item
 from database.models.client import ClientSchema
 from database.models.item import Item
 from firebase import types
