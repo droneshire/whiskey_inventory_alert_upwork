@@ -39,7 +39,7 @@ class FirebaseClient:
                 self._document_snapshot_handler
             )
 
-        self.db_cache = {}
+        self.db_cache: T.Dict[str, T.Any] = {}
 
     def _delete_client(self, name: str) -> None:
         ClientDb.delete_client(name)
@@ -81,7 +81,9 @@ class FirebaseClient:
 
             if doc.id not in self.client_watcher:
                 log.print_bold(f"Adding watcher for client {doc.id}")
-                self.client_watcher[doc.id] = doc.on_snapshot(self._document_snapshot_handler)
+                self.client_watcher[doc.id] = self.clients_ref.document(doc.id).on_snapshot(
+                    self._document_snapshot_handler
+                )
 
     def _document_snapshot_handler(
         self,

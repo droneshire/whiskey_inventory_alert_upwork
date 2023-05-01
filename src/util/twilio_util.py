@@ -1,6 +1,6 @@
 from twilio.rest import Client
 
-from src.util import log
+from util import log
 
 
 class TwilioUtil:
