@@ -64,7 +64,9 @@ class FirebaseClient:
                     f"Initializing new client {doc.id} in database:\n{json.dumps(new_db_dict, indent=4, sort_keys=True)}"
                 )
                 self.clients_ref.document(doc.id).set(json.loads(json.dumps(new_db_dict)))
-                add_client(doc.id, "", "")
+
+            add_client(doc.id, "", "")
+
             self.db_cache[doc.id] = copy.deepcopy(db_dict)
 
             if doc.id not in self.client_watcher:
