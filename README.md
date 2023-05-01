@@ -18,6 +18,12 @@ The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) an
 
 ## Setup
 
+### Gmail
+
+We use [`yagmail`](https://mailtrap.io/blog/yagmail-tutorial/) to send emails. This requires the credentials of a gmail account to send on behalf of. 
+
+You'll store the email address and password in the `.env` file below. Recommendation is to create a new gmail account for this purpose.
+
 ### Twilio
 Set up a Twilio account for the SMS alerts. 
 
