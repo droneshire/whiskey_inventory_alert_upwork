@@ -58,15 +58,23 @@ class FirebaseClient:
                     f"Collection data: {json.dumps(db_dict, indent=4, sort_keys=True)}"
                 )
 
+            is_present = any([d.id for d in self.clients_ref.list_documents() if d.id == doc.id])
+
+            if not is_present:
+                log.print_fail(f"Client {doc.id} not in database! DELETING")
+                ClientDb.delete_client(doc.id)
+                continue
+
             if not db_dict:
-                new_db_dict = copy.deepcopy(types.NULL_CLIENT)
+                db_dict = copy.deepcopy(types.NULL_CLIENT)
                 log.print_normal(
-                    f"Initializing new client {doc.id} in database:\n{json.dumps(new_db_dict, indent=4, sort_keys=True)}"
+                    f"Initializing new client {doc.id} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
                 )
-                self.clients_ref.document(doc.id).set(json.loads(json.dumps(new_db_dict)))
+                self.clients_ref.document(doc.id).set(json.loads(json.dumps(db_dict)))
 
-            add_client(doc.id, "", "")
-
+            email = db_dict["preferences"]["notifications"]["email"]["email"]
+            phone_number = db_dict["preferences"]["notifications"]["sms"]["phoneNumber"]
+            add_client(doc.id, email, phone_number)
             self.db_cache[doc.id] = copy.deepcopy(db_dict)
 
             if doc.id not in self.client_watcher:
@@ -95,7 +103,7 @@ class FirebaseClient:
             return
 
         phone_number = db_dict["preferences"]["notifications"]["sms"]["phoneNumber"]
-        if not phone_number.startswith("+1"):
+        if phone_number and not phone_number.startswith("+1"):
             phone_number = "+1" + phone_number
 
         add_client(doc.id, email, phone_number)
@@ -112,11 +120,16 @@ class FirebaseClient:
                     db_dict["inventory"]["items"][nc_code]["available"] = item.total_available
 
         with ClientDb(doc.id).client() as client:
-            client.email = email
-            client.phone_number = phone_number
-            client.threshold_inventory = db_dict["inventory"]["inventoryChange"]
-            client.phone_alerts = db_dict["preferences"]["notifications"]["sms"]["updatesEnabled"]
-            client.email_alerts = db_dict["preferences"]["notifications"]["email"]["updatesEnabled"]
+            if client is not None:
+                client.email = email
+                client.phone_number = phone_number
+                client.threshold_inventory = db_dict["inventory"]["inventoryChange"]
+                client.phone_alerts = db_dict["preferences"]["notifications"]["sms"][
+                    "updatesEnabled"
+                ]
+                client.email_alerts = db_dict["preferences"]["notifications"]["email"][
+                    "updatesEnabled"
+                ]
 
         self.db_cache[doc.id] = copy.deepcopy(db_dict)
 

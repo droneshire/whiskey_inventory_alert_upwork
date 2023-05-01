@@ -78,7 +78,8 @@ class InventoryMonitor:
         for name in client_names:
             db = ClientDb(name)
             with db.client() as client:
-                self.clients[name] = ClientSchema().dump(client)
+                if client is not None:
+                    self.clients[name] = ClientSchema().dump(client)
 
     def _is_time_to_check_inventory(self) -> bool:
         if self.last_inventory_update_time is None:
@@ -89,6 +90,9 @@ class InventoryMonitor:
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
         with ClientDb(client_name).client() as db:
+            if client is None:
+                return
+
             for db_item in db.items:
                 if db_item.nc_code != item[self.INVENTORY_CODE_KEY]:
                     continue
@@ -117,6 +121,8 @@ class InventoryMonitor:
             return
 
         with ClientDb(name=client["name"]).client() as db:
+            if db is None:
+                return
             db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
 
         items_to_update = []
@@ -192,6 +198,8 @@ class InventoryMonitor:
             message += f"{nc_code}: {brand_name} is now in stock with {total_available}\n"
 
             with ClientDb(client["name"]).client() as db:
+                if db is None:
+                    break
                 db.updates_sent += 1
 
         if not items_to_update:

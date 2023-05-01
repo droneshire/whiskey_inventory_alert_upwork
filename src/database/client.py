@@ -22,7 +22,9 @@ class ClientDb:
 
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.name == name).first()
-            assert client is not None, f"Client {self.name} not in DB!"
+            if client is None:
+                log.print_fail(f"Client {name} not in db!")
+                return
             for item in client.items:
                 self.items.append(item)
 
@@ -30,7 +32,6 @@ class ClientDb:
     def client(self) -> T.Iterator[Client]:
         with ManagedSession() as db:
             name = db.query(Client).filter(Client.name == self.name).first()
-            assert name is not None, f"User {self.name} not in DB!"
 
             yield name
 
@@ -63,6 +64,17 @@ class ClientDb:
         return clients
 
     @staticmethod
+    def delete_client(name: str, db_str: str = DEFAULT_DB, verbose: bool = False) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.name == name).first()
+            if client is None:
+                if verbose:
+                    log.print_warn(f"Not deleting {name}, it's not in db")
+                return
+
+            db.query(Client).filter(Client.name == name).delete()
+
+    @staticmethod
     def add_client(
         name: str,
         email: str = "",
@@ -83,7 +95,33 @@ class ClientDb:
                 name=name, email=email, phone_number=phone_number, last_updated=func.now()
             )
 
-            db.add(client)
+            try:
+                db.add(client)
+            except:
+                log.print_fail("Failed to store db item!")
+
+    @staticmethod
+    def delete_item(
+        name: str, nc_code: str, db_str: str = DEFAULT_DB, verbose: bool = False
+    ) -> None:
+        with ManagedSession() as db:
+            item = (
+                db.query(Item)
+                .filter(Item.nc_code == nc_code)
+                .filter(Item.client_id == client.id)
+                .first()
+            )
+            if item is None:
+                log.print_fail(f"Failed to delete item {nc_code}, it doesn't exist!")
+                return
+
+            if nc_code not in [i.nc_code for i in client.items]:
+                log.print_warn(f"Skipping {nc_code} deletion, it's not in db")
+                return
+
+            db.query(Item).filter(Item.nc_code == nc_code).filter(
+                Item.client_id == client.id
+            ).delete()
 
     @staticmethod
     def add_item(
@@ -135,4 +173,7 @@ class ClientDb:
 
             item.is_tracking = is_tracking
 
-            db.add(item)
+            try:
+                db.add(item)
+            except:
+                log.print_fail("Failed to store db item!")
