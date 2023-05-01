@@ -86,9 +86,6 @@ class InventoryMonitor:
         return time_since_last_update > self.time_between_inventory_checks
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
-        if not self.use_local_db:
-            return
-
         with ClientDb(client_name).client() as db:
             for db_item in db.items:
                 if db_item.nc_code != item[self.INVENTORY_CODE_KEY]:
@@ -129,26 +126,9 @@ class InventoryMonitor:
                 log.print_normal(f"Did not find {nc_code} in inventory")
                 continue
 
-            with ClientDb(client["name"]).client() as db:
-                before_client: ClientSchema = ClientSchema().dump(db)
-
             self._update_local_db_item(client["name"], item)
-
-            with ClientDb(client["name"]).client() as db:
-                after_client: ClientSchema = ClientSchema().dump(db)
-
-            for before_item in before_client["items"]:
-                for after_item in after_client["items"]:
-                    if before_item["nc_code"] != after_item["nc_code"]:
-                        continue
-
-                    if (
-                        before_item["total_available"] != after_item["total_available"]
-                        or before_item["brand_name"] != after_item["brand_name"]
-                    ):
-                        log.print_ok_arrow(f"Found changes for {client['name']}")
-                        self.firebase_client.update_items(client["name"])
-                        break
+            if self.firebase_client:
+                self.firebase_client.check_and_maybe_update_items(client["name"], nc_code)
 
             if item["Total Available"] == 0:
                 log.print_normal(f"{nc_code} is out of stock")
@@ -208,6 +188,10 @@ class InventoryMonitor:
 
         if self.dry_run:
             log.print_normal("Dry run, not sending SMS")
+            return
+
+        if not item_schema["is_tracking"]:
+            log.print_normal("Not sending alert, item is not being tracked")
             return
 
         if client["phone_number"] and client["phone_alerts"]:

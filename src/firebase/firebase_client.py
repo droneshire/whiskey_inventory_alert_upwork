@@ -38,6 +38,9 @@ class FirebaseClient:
                 self._document_snapshot_handler
             )
 
+        self.db_cache = {}
+
+
     def _collection_snapshot_handler(
         self,
         collection_snapshot: DocumentSnapshot,
@@ -58,6 +61,7 @@ class FirebaseClient:
                     f"Initializing new client {doc.id} in database:\n{json.dumps(new_db_dict, indent=4, sort_keys=True)}"
                 )
                 self.clients_ref.document(doc.id).set(json.loads(json.dumps(new_db_dict)))
+            self.db_cache[doc.id] = copy.deepcopy(db_dict)
 
     def _document_snapshot_handler(
         self,
@@ -96,6 +100,7 @@ class FirebaseClient:
             with ClientDb(doc.id).item(nc_code) as item:
                 if item.nc_code == nc_code and item.brand_name:
                     db_dict["inventory"]["items"][nc_code]["name"] = item.brand_name
+                    db_dict["inventory"]["items"][nc_code]["available"] = item.total_available
 
         with ClientDb(doc.id).client() as client:
             client.email = email
@@ -103,6 +108,8 @@ class FirebaseClient:
             client.threshold_inventory = db_dict["inventory"]["inventoryChange"]
             client.phone_alerts = db_dict["preferences"]["notifications"]["sms"]["updatesEnabled"]
             client.email_alerts = db_dict["preferences"]["notifications"]["email"]["updatesEnabled"]
+
+        self.db_cache[doc.id] = copy.deepcopy(db_dict)
 
         diff = deepdiff.DeepDiff(
             old_db_dict,
@@ -119,25 +126,30 @@ class FirebaseClient:
         else:
             log.print_warn(f"Client {doc.id} already up to date in database!")
 
-    def update_items(self, client: str) -> None:
-        log.print_warn(f"Updating client {client} in database...")
-        try:
-            client_ref = self.clients_ref.document(client)
-        except:
-            log.print_fail(f"Client {client} does not exist!")
+    def check_and_maybe_update_items(self, client: str, item_code: str) -> None:
+        items = self.db_cache[client]["inventory"]["items"]
+
+        update_needed = False
+        if (
+            item_code not in items
+            or items[item_code]["available"] == -1
+            or items[item_code]["name"] == ""
+        ):
+            update_needed = True
+
+        if not update_needed:
             return
 
-        client_doc = client_ref.get()
-        old_db_dict = client_doc.to_dict()
-        db_dict = copy.deepcopy(old_db_dict)
+        db_dict = copy.deepcopy(self.db_cache[client])
 
         for nc_code, info in db_dict["inventory"]["items"].items():
             with ClientDb(client).item(nc_code) as item:
-                if item.nc_code == nc_code and item.brand_name:
+                if item.nc_code == nc_code and item.brand_name and item.total_available:
                     db_dict["inventory"]["items"][nc_code]["name"] = item.brand_name
+                    db_dict["inventory"]["items"][nc_code]["available"] = item.total_available
 
         diff = deepdiff.DeepDiff(
-            old_db_dict,
+            self.db_cache[client],
             db_dict,
             ignore_order=True,
             ignore_numeric_type_changes=True,

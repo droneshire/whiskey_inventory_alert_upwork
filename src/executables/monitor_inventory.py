@@ -113,7 +113,6 @@ def main() -> None:
 
     while True:
         monitor.run()
-        wait.wait(args.wait_time)
 
 
 if __name__ == "__main__":
