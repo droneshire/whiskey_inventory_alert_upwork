@@ -40,7 +40,6 @@ class FirebaseClient:
 
         self.db_cache = {}
 
-
     def _collection_snapshot_handler(
         self,
         collection_snapshot: DocumentSnapshot,
@@ -127,7 +126,9 @@ class FirebaseClient:
             log.print_warn(f"Client {doc.id} already up to date in database!")
 
     def check_and_maybe_update_items(self, client: str, item_code: str) -> None:
-        items = self.db_cache[client]["inventory"]["items"]
+        items = self.db_cache.get(client, {}).get("inventory", {}).get("items", [])
+        if not items:
+            return
 
         update_needed = False
         if (

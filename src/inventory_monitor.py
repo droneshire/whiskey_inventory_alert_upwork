@@ -19,7 +19,7 @@ from util.twilio_util import TwilioUtil
 
 class InventoryMonitor:
     TIME_BETWEEN_INVENTORY_CHECKS = 60 * 2
-    WAIT_TIME = 60
+    WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
 
     def __init__(
@@ -99,6 +99,14 @@ class InventoryMonitor:
                 db_item.supplier_allotment = int(item["Supplier Allotment"])
                 db_item.broker_name = item["Broker Name"]
 
+    def _check_and_update_firebase_should_be_updated(self) -> None:
+        if self.firebase_client is None:
+            return
+
+        for name, client in self.clients.items():
+            for item in client["items"]:
+                self.firebase_client.check_and_maybe_update_items(name, item["nc_code"])
+
     def check_client_inventory(self, client: ClientSchema) -> None:
         log.print_bold(f"Checking {json.dumps(client, indent=4)}")
 
@@ -127,8 +135,6 @@ class InventoryMonitor:
                 continue
 
             self._update_local_db_item(client["name"], item)
-            if self.firebase_client:
-                self.firebase_client.check_and_maybe_update_items(client["name"], nc_code)
 
             if item["Total Available"] == 0:
                 log.print_normal(f"{nc_code} is out of stock")
@@ -265,16 +271,16 @@ class InventoryMonitor:
             log.print_fail("No clients to check inventory for")
             return
 
-        self.update_inventory(self.download_url)
-
         self._update_clients_from_db()
 
         for name, client in self.clients.items():
             log.print_normal(f"Checking inventory for {name}")
             self.check_client_inventory(client)
 
-    def run(self) -> None:
-        if not self._is_time_to_check_inventory():
-            return
+        self._check_and_update_firebase_should_be_updated()
 
+    def run(self) -> None:
+        if self._is_time_to_check_inventory():
+            self.update_inventory(self.download_url)
         self._check_inventory()
+        wait.wait(self.WAIT_TIME)
