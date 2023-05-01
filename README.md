@@ -22,6 +22,10 @@ The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) an
 
 Set up a linux device to deploy the inventory manager bot to.
 
+Create a `.env` file and either upload it to the root of the repo or create it directly there with the following contents:
+
+You'll need to replace anything within the `<>` with valid string entries e.g. `ADMIN_NAME="John Doe"`
+
 ```
 DEFAULT_DB="<INSERT YOUR DEFAULT DATABASE FILENAME HERE>"
 
