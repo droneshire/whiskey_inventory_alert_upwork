@@ -143,6 +143,9 @@ class InventoryMonitor:
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
 
+            if not item_schema["is_tracking"]:
+                continue
+
             log.print_ok_arrow(f"Checking {nc_code}")
 
             if nc_code is None:
