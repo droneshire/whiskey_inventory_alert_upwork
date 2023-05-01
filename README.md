@@ -18,6 +18,38 @@ This script monitors the inventory and creates alerts based on a mapping of clie
 
 The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and sends the text message alert to the associated client. The initial setup will be pay as you go plan on Twilio, and should be fairly reasonable costwise.
 
+## Setup
+
+Set up a linux device to deploy the inventory manager bot to.
+
+```
+DEFAULT_DB="<INSERT YOUR DEFAULT DATABASE FILENAME HERE>"
+
+# Configure the Twilio SMS provider.
+TWILIO_FROM_SMS_NUMBER="<INSERT YOUR TWILIO SMS NUMBER HERE>"
+TWILIO_AUTH_TOKEN="<INSERT YOUR TWILIO AUTH TOKEN HERE>"
+TWILIO_ACCOUNT_SID="<INSERT YOUR TWILIO ACCOUNT SID HERE>"
+
+# Website to download the inventory from
+INVENTORY_DOWNLOAD_URL="https://<INSERT YOUR INVENTORY WEBSITE URL HERE>/ExportData"
+INVENTORY_DOWNLOAD_KEY="<INSERT YOUR INVENTORY DOWNLOAD KEY HERE>\r\n"
+
+# Test account to use for testing
+TEST_CLIENT_NAME="<INSERT YOUR TEST CLIENT NAME HERE>"
+TEST_CLIENT_PHONE="<INSERT YOUR TEST CLIENT PHONE NUMBER HERE>"
+TEST_CLIENT_EMAIL="<INSERT YOUR TEST CLIENT EMAIL HERE>"
+
+# Admin settings
+ADMIN_NAME="<INSERT YOUR ADMIN NAME HERE>"
+ADMIN_PHONE="<INSERT YOUR ADMIN PHONE NUMBER HERE>"
+ADMIN_EMAIL="<INSERT YOUR ADMIN EMAIL HERE>"
+ADMIN_EMAIL_PASSWORD_ENCRYPTED="<INSERT YOUR ENCRYPTED ADMIN EMAIL PASSWORD HERE>"
+
+# Firebase settings
+GOOGLE_APPLICATION_CREDENTIALS="<INSERT YOUR FIREBASE SERVICE ACCOUNT JSON FILENAME HERE>"
+
+```
+
 ## Database
 The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow
 
