@@ -62,7 +62,7 @@ Create a `.env` file and either upload it to the root of the repo or create it d
 You'll need to replace anything within the `<>` with valid string entries e.g. `ADMIN_NAME="John Doe"`
 
 ```
-DEFAULT_DB="<INSERT YOUR DEFAULT DATABASE FILENAME HERE>"
+DEFAULT_DB="inventory_manager.db"
 
 # Configure the Twilio SMS provider.
 TWILIO_FROM_SMS_NUMBER="<INSERT YOUR TWILIO SMS NUMBER HERE>"
