@@ -19,6 +19,7 @@ from util.twilio_util import TwilioUtil
 
 class InventoryMonitor:
     TIME_BETWEEN_INVENTORY_CHECKS = 60 * 2
+    TIME_BETWEEN_FIREBASE_QUERIES = 60 * 30
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
 
@@ -57,6 +58,7 @@ class InventoryMonitor:
         self.web = web2_client.Web2Client()
 
         self.last_inventory_update_time = None
+        self.last_query_firebase_time = None
 
         self.firebase_client: FirebaseClient = (
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
@@ -90,7 +92,7 @@ class InventoryMonitor:
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
         with ClientDb(client_name).client() as db:
-            if client is None:
+            if db is None:
                 return
 
             for db_item in db.items:
@@ -108,6 +110,17 @@ class InventoryMonitor:
     def _check_and_update_firebase_should_be_updated(self) -> None:
         if self.firebase_client is None:
             return
+
+        update_from_firebase = False
+        if self.last_query_firebase_time is None:
+            update_from_firebase = True
+        else:
+            time_since_last_update = time.time() - self.last_query_firebase_time
+            update_from_firebase = time_since_last_update > self.TIME_BETWEEN_FIREBASE_QUERIES
+
+        if update_from_firebase:
+            self.last_query_firebase_time = time.time()
+            self.firebase_client.update_from_firebase()
 
         for name, client in self.clients.items():
             for item in client["items"]:

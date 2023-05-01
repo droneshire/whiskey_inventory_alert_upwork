@@ -41,6 +41,14 @@ class FirebaseClient:
 
         self.db_cache = {}
 
+    def _delete_client(self, name: str) -> None:
+        ClientDb.delete_client(name)
+        if name in self.client_watcher:
+            del self.client_watcher[name]
+        if name in self.db_cache:
+            del self.db_cache[name]
+        log.print_warn(f"Deleting client {name} from database")
+
     def _collection_snapshot_handler(
         self,
         collection_snapshot: DocumentSnapshot,
@@ -58,13 +66,6 @@ class FirebaseClient:
                     f"Collection data: {json.dumps(db_dict, indent=4, sort_keys=True)}"
                 )
 
-            is_present = any([d.id for d in self.clients_ref.list_documents() if d.id == doc.id])
-
-            if not is_present:
-                log.print_fail(f"Client {doc.id} not in database! DELETING")
-                ClientDb.delete_client(doc.id)
-                continue
-
             if not db_dict:
                 db_dict = copy.deepcopy(types.NULL_CLIENT)
                 log.print_normal(
@@ -75,9 +76,11 @@ class FirebaseClient:
             email = db_dict["preferences"]["notifications"]["email"]["email"]
             phone_number = db_dict["preferences"]["notifications"]["sms"]["phoneNumber"]
             add_client(doc.id, email, phone_number)
+
             self.db_cache[doc.id] = copy.deepcopy(db_dict)
 
             if doc.id not in self.client_watcher:
+                log.print_bold(f"Adding watcher for client {doc.id}")
                 self.client_watcher[doc.id] = doc.on_snapshot(self._document_snapshot_handler)
 
     def _document_snapshot_handler(
@@ -148,20 +151,20 @@ class FirebaseClient:
         elif self.verbose:
             log.print_normal(f"Client {doc.id} is up to date!")
 
+    def update_from_firebase(self) -> None:
+        log.print_warn(f"Updating from firebase database instead of cache")
+        clients = self.db_cache.keys()
+        self.db_cache = {}
+        for doc in self.clients_ref.stream():
+            self.db_cache[doc.id] = doc.to_dict()
+
+        for client in clients:
+            if client not in self.db_cache:
+                self._delete_client(client)
+
     def check_and_maybe_update_items(self, client: str, item_code: str) -> None:
         items = self.db_cache.get(client, {}).get("inventory", {}).get("items", [])
         if not items:
-            return
-
-        update_needed = False
-        if (
-            item_code not in items
-            or items[item_code]["available"] == -1
-            or items[item_code]["name"] == ""
-        ):
-            update_needed = True
-
-        if not update_needed:
             return
 
         db_dict = copy.deepcopy(self.db_cache[client])

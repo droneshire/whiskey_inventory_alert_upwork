@@ -35,6 +35,9 @@ class ClientDb:
 
             yield name
 
+            if name is None:
+                return
+
             name.last_updated = func.now()
 
             try:
@@ -49,6 +52,9 @@ class ClientDb:
             assert item is not None, f"Item for {nc_code} not in DB!"
 
             yield item
+
+            if item is None:
+                return
 
             try:
                 db.add(item)
@@ -72,6 +78,7 @@ class ClientDb:
                     log.print_warn(f"Not deleting {name}, it's not in db")
                 return
 
+            db.query(Item).filter(Item.client_id == client.id).delete()
             db.query(Client).filter(Client.name == name).delete()
 
     @staticmethod
@@ -99,29 +106,6 @@ class ClientDb:
                 db.add(client)
             except:
                 log.print_fail("Failed to store db item!")
-
-    @staticmethod
-    def delete_item(
-        name: str, nc_code: str, db_str: str = DEFAULT_DB, verbose: bool = False
-    ) -> None:
-        with ManagedSession() as db:
-            item = (
-                db.query(Item)
-                .filter(Item.nc_code == nc_code)
-                .filter(Item.client_id == client.id)
-                .first()
-            )
-            if item is None:
-                log.print_fail(f"Failed to delete item {nc_code}, it doesn't exist!")
-                return
-
-            if nc_code not in [i.nc_code for i in client.items]:
-                log.print_warn(f"Skipping {nc_code} deletion, it's not in db")
-                return
-
-            db.query(Item).filter(Item.nc_code == nc_code).filter(
-                Item.client_id == client.id
-            ).delete()
 
     @staticmethod
     def add_item(
