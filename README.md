@@ -4,11 +4,11 @@ Track drink inventory and alert to various users via text when new inventory com
 
 There are two parts to this project, a frontend and a backend. This project represents the backend.
 
-## Backend: Inventory Monitoring and SMS Alerts
+# Backend: Inventory Monitoring and SMS Alerts
 
 ![image](https://user-images.githubusercontent.com/2355438/233558659-06ae0128-f788-4f0f-a594-2b26f459d32e.png)
 
-### Inventory Monitoring
+## Inventory Monitoring
 - Inventory is monitored from this [site](https://abc.nc.gov/StoresBoards/Stocks)
 - Inventory is updated every 15 minutes
 - Inventory can be exported to CSV vie the following endpoint: https://abc.nc.gov/StoresBoards/ExportData
@@ -18,9 +18,19 @@ This script monitors the inventory and creates alerts based on a mapping of clie
 
 The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) and sends the text message alert to the associated client. The initial setup will be pay as you go plan on Twilio, and should be fairly reasonable costwise.
 
-## Setup
+# Setup
 
 Set up a linux device to deploy the inventory manager bot to.
+
+Make sure the following packages are installed:
+```
+apt update
+apt -y install git python3-pip python3-testresources python3-venv python3-gpg vim
+```
+Create an ssh key for github and add it as a [Deploy Key](https://github.com/droneshire/whiskey_inventory_alert_upwork/settings/keys) to this repo.
+```
+ssh-keygen -t ed25519 -C <YOUR EMAIL> -f /root/.ssh/id_ed25519 -q -N ""
+```
 
 Create a `.env` file and either upload it to the root of the repo or create it directly there with the following contents:
 
@@ -54,7 +64,7 @@ GOOGLE_APPLICATION_CREDENTIALS="<INSERT YOUR FIREBASE SERVICE ACCOUNT JSON FILEN
 
 ```
 
-## Database
+# Database
 The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow
 
 In this script, the database will be accessed using [Firebase authenticated API calls](https://firebase.google.com/docs/auth/web/start) and will listen to database changes made by the user on the frontend website.
@@ -63,7 +73,7 @@ User will also be able to edit the database directly in the Firebase service man
 
 The bot also has a local database that can either be used as the source of truth (using the `--use-local-db` argument), or will mirror what is seen in Firebase. This provides some redundancy and allows for easy migration should we switch DB hosts in the future.
 
-## Frontend: Assign Inventory Watch to Clients
+# Frontend: Assign Inventory Watch to Clients
 The Firebase backed frontend will be a separate repo of a React/Typescript based website. Link to be provided once it is developed.
 
 The frontend will have a simple interface that will require Google authentication to access.
@@ -72,11 +82,11 @@ It will allow the user to input new clients, their contact info, and the associa
 
 Repo can be found here: https://github.com/droneshire/whiskey_inventory_firebase_client
 
-### Icons
+## Icons
 - https://abc.nc.gov/Images/Icons/ABC%20Warehouse%20Icon.png
 - https://abc.nc.gov/Images/ABCImagePanel.png
 
-## Hosting
+# Hosting
 
 The backend can be hosted on any server that supports python3 and has internet access. General backend setup will be the responsibility of the host so cost and maintenance are beyond the scope of this project. My recommendation is using a Digital Ocean Droplet for about $6/month. Setup is quick and easy.
 
