@@ -105,11 +105,9 @@ User will also be able to edit the database directly in the Firebase service man
 The bot also has a local database that can either be used as the source of truth (using the `--use-local-db` argument), or will mirror what is seen in Firebase. This provides some redundancy and allows for easy migration should we switch DB hosts in the future.
 
 # Frontend: Assign Inventory Watch to Clients
-The Firebase backed frontend will be a separate repo of a React/Typescript based website. Link to be provided once it is developed.
+The Firebase backed frontend is a separate repo of a React/Typescript based website. 
 
-The frontend will have a simple interface that will require Google authentication to access.
-
-It will allow the user to input new clients, their contact info, and the associated product codes to watch and alert on.
+The frontend has a simple interface that will require Google authentication to access. It allows the user to input new clients, their contact info, and the associated product codes to watch and alert on.
 
 Repo can be found here: https://github.com/droneshire/whiskey_inventory_firebase_client
 
