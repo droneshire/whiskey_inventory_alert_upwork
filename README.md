@@ -1,4 +1,4 @@
-# Drink Inventory Alert Bot
+# NC ABC Inventory Alert Bot
 
 Track drink inventory and alert to various users via text when new inventory comes on the market.
 
