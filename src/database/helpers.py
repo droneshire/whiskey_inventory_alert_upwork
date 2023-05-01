@@ -13,11 +13,9 @@ def add_item(name: str, item_code: str) -> None:
 
 def track_item(name: str, item_code: str, do_track: bool) -> None:
     """Modify tracking status of item in the database"""
-    db = ClientDb(name)
-    with db.client() as client:
-        for item in client.items:
-            if item.nc_code == item_code:
-                item.tracking = do_track
-                return
+    with ClientDb(name).item(item_code) as item:
+        if item is not None:
+            item.is_tracking = do_track
+            return
 
     add_item(name, item_code)
