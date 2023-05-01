@@ -137,16 +137,18 @@ class InventoryMonitor:
             with ClientDb(client["name"]).client() as db:
                 after_client: ClientSchema = ClientSchema().dump(db)
 
-            diff = deepdiff.DeepDiff(
-                before_client,
-                after_client,
-                ignore_order=True,
-                ignore_numeric_type_changes=True,
-                ignore_order_func=True,
-            )
-            if diff:
-                log.print_ok_arrow(f"Found changes for {client['name']}")
-                self.firebase_client.update_items(client["name"])
+            for before_item in before_client["items"]:
+                for after_item in after_client["items"]:
+                    if before_item["nc_code"] != after_item["nc_code"]:
+                        continue
+
+                    if (
+                        before_item["total_available"] != after_item["total_available"]
+                        or before_item["brand_name"] != after_item["brand_name"]
+                    ):
+                        log.print_ok_arrow(f"Found changes for {client['name']}")
+                        self.firebase_client.update_items(client["name"])
+                        break
 
             if item["Total Available"] == 0:
                 log.print_normal(f"{nc_code} is out of stock")
