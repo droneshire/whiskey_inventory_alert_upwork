@@ -48,7 +48,8 @@ source ./venv/bin/activate
 make install
 ```
 ### Config Files
-**`.env`**
+
+- **`.env`**
 
 Create a `.env` file and either upload it to the root of the repo or create it directly there with the following contents:
 
@@ -81,7 +82,8 @@ ADMIN_EMAIL_PASSWORD_ENCRYPTED="<INSERT YOUR ENCRYPTED ADMIN EMAIL PASSWORD HERE
 GOOGLE_APPLICATION_CREDENTIALS="firebase_service_account.json"
 
 ```
-**`firebase_service_account.json`**
+
+- **`firebase_service_account.json`**
 
 Finally, add a `firebase_service_account.json` to the repo root directory. The contents of this file can be found [here](https://console.firebase.google.com/u/0/project/inventory-860f0/settings/serviceaccounts/adminsdk).
 
