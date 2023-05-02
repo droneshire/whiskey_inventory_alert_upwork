@@ -75,8 +75,6 @@ def send_email(
                 verbose=verbose,
             )
             return
-        except KeyboardInterrupt:
-            raise
         except:
             pass
 

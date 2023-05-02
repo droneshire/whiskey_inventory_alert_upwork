@@ -40,26 +40,19 @@ class ClientDb:
 
             name.last_updated = func.now()
 
-            try:
-                db.add(name)
-            except:
-                log.print_fail("Failed to store db item!")
+            db.add(name)
 
     @contextmanager
     def item(self, nc_code: str) -> T.Iterator[Item]:
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.nc_code == nc_code).first()
-            assert item is not None, f"Item for {nc_code} not in DB!"
 
             yield item
 
             if item is None:
                 return
 
-            try:
-                db.add(item)
-            except:
-                log.print_fail("Failed to store db item!")
+            db.add(item)
 
     @staticmethod
     def get_client_names() -> T.List[str]:
@@ -102,10 +95,7 @@ class ClientDb:
                 name=name, email=email, phone_number=phone_number, last_updated=func.now()
             )
 
-            try:
-                db.add(client)
-            except:
-                log.print_fail("Failed to store db item!")
+            db.add(client)
 
     @staticmethod
     def add_item(
@@ -156,8 +146,4 @@ class ClientDb:
                 item.broker_name = broker_name
 
             item.is_tracking = is_tracking
-
-            try:
-                db.add(item)
-            except:
-                log.print_fail("Failed to store db item!")
+            db.add(item)

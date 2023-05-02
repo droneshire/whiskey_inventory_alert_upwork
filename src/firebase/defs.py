@@ -30,6 +30,7 @@ class Sms(T.TypedDict):
 class Notifications(T.TypedDict):
     email: Email
     sms: Sms
+    alertTimeRange: T.List[str]
 
 
 class Preferences(T.TypedDict):
@@ -47,6 +48,7 @@ NULL_CLIENT = Client(
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),
             sms=Sms(phoneNumber="", updatesEnabled=False),
+            alertTimeRange=[],
         )
     ),
 )
