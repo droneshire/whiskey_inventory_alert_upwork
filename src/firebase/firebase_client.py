@@ -1,6 +1,7 @@
 import copy
 import enum
 import json
+import threading
 import typing as T
 
 import deepdiff
@@ -18,7 +19,13 @@ from database.models.client import ClientSchema
 from database.models.item import Item
 from firebase import defs
 from util import log
-from util.dict_util import check_dict_keys_recursive, patch_missing_keys_recursive
+from util.dict_util import check_dict_keys_recursive, patch_missing_keys_recursive, safe_get
+
+
+class Changes(enum.Enum):
+    ADDED = 1
+    MODIFIED = 2
+    REMOVED = 3
 
 
 class FirebaseClient:
@@ -33,160 +40,167 @@ class FirebaseClient:
 
         self.clients_watcher = self.clients_ref.on_snapshot(self._collection_snapshot_handler)
 
-        self.db_cache: T.Dict[str, T.Any] = {}
+        self.db_cache: defs.Client = {}
+
+        self.callback_done = threading.Event()
+        self.db_cache_lock = threading.Lock()
 
     def _delete_client(self, name: str) -> None:
         ClientDb.delete_client(name)
-        if name in self.client_watcher:
-            del self.client_watcher[name]
-        if name in self.db_cache:
-            del self.db_cache[name]
+        with self.db_cache_lock:
+            if name in self.db_cache:
+                del self.db_cache[name]
         log.print_warn(f"Deleting client {name} from database")
 
     def _collection_snapshot_handler(
         self,
-        collection_snapshot: DocumentSnapshot,
+        collection_snapshot: T.List[DocumentSnapshot],
         changed_docs: T.List[DocumentChange],
         read_time: T.Any,
     ) -> None:
-        log.print_warn("Received collection snapshots")
-        for change in changed_docs:
-            self._handle_document_change(change)
+        log.print_warn(f"Received collection snapshot for {len(collection_snapshot)} documents")
 
-    def _handle_document_change(self, change: DocumentChange) -> None:
-        doc: DocumentSnapshot = change.document
-        db_dict: defs.Client = doc.to_dict()
-
-        log.print_ok_blue_arrow(f"Received collection snapshot: {doc.id}")
-        if self.verbose:
-            log.print_ok_blue(f"Collection data: {json.dumps(db_dict, indent=4, sort_keys=True)}")
-
-        if not db_dict:
-            db_dict = copy.deepcopy(defs.NULL_CLIENT)
-            log.print_normal(
-                f"Initializing new client {doc.id} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
-            )
-            self.clients_ref.document(doc.id).set(json.loads(json.dumps(db_dict)))
-
-        if check_dict_keys_recursive(db_dict, defs.NULL_CLIENT):
-            patch_missing_keys_recursive(db_dict, defs.NULL_CLIENT)
-            self.clients_ref.document(doc.id).set(json.loads(json.dumps(db_dict)))
-
-        email = db_dict["preferences"]["notifications"]["email"]["email"]
-        phone_number = db_dict["preferences"]["notifications"]["sms"]["phoneNumber"]
-        add_client(doc.id, email, phone_number)
-
-        self.db_cache[doc.id] = copy.deepcopy(db_dict)
-
-        if doc.id not in self.client_watcher:
-            log.print_bold(f"Adding watcher for client {doc.id}")
-            self.client_watcher[doc.id] = self.clients_ref.document(doc.id).on_snapshot(
-                self._document_snapshot_handler
-            )
-
-    def _document_snapshot_handler(
-        self,
-        document_snapshots: T.List[DocumentSnapshot],
-        changes: DocumentChange,
-        read_time: T.Any,
-    ) -> None:
-        doc = document_snapshots[0]
-        db_dict = doc.to_dict()
-        old_db_dict = copy.deepcopy(db_dict)
-
-        log.print_warn(f"Received document snapshot: {doc.id}")
-        if self.verbose:
-            log.print_ok_blue(
-                f"Document data: {json.dumps(doc.to_dict(), indent=4, sort_keys=True)}"
-            )
-
-        try:
-            email = db_dict["preferences"]["notifications"]["email"]["email"]
-        except KeyError:
-            log.print_fail(f"Client {doc.id} is not activated!")
-            return
-
-        phone_number = db_dict["preferences"]["notifications"]["sms"]["phoneNumber"]
-        if phone_number and not phone_number.startswith("+1"):
-            phone_number = "+1" + phone_number
-
-        add_client(doc.id, email, phone_number)
-
-        for nc_code, info in db_dict["inventory"]["items"].items():
-            if info["action"] == defs.Actions.TRACKING.value:
-                add_item(doc.id, nc_code)
-            elif info["action"] == defs.Actions.NOT_TRACKING.value:
-                track_item(doc.id, nc_code, False)
-
-            with ClientDb(doc.id).item(nc_code) as item:
-                if item and item.nc_code == nc_code and item.brand_name:
-                    db_dict["inventory"]["items"][nc_code]["name"] = item.brand_name
-                    db_dict["inventory"]["items"][nc_code]["available"] = item.total_available
-
-        with ClientDb(doc.id).client() as client:
-            if client is not None:
-                client.email = email
-                client.phone_number = phone_number
-                client.threshold_inventory = db_dict["inventory"]["inventoryChange"]
-                client.phone_alerts = db_dict["preferences"]["notifications"]["sms"][
-                    "updatesEnabled"
-                ]
-                client.email_alerts = db_dict["preferences"]["notifications"]["email"][
-                    "updatesEnabled"
-                ]
-
-        self.db_cache[doc.id] = copy.deepcopy(db_dict)
-
-        diff = deepdiff.DeepDiff(
-            old_db_dict,
-            db_dict,
-            ignore_order=True,
-            ignore_numeric_type_changes=True,
-            ignore_order_func=True,
-        )
-        if diff:
-            log.print_normal(
-                f"Updated client {doc.id} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
-            )
-            self.clients_ref.document(doc.id).set(json.loads(json.dumps(db_dict)))
-        elif self.verbose:
-            log.print_normal(f"Client {doc.id} is up to date!")
-
-    def update_from_firebase(self) -> None:
-        log.print_warn(f"Updating from firebase database instead of cache")
         clients = self.db_cache.keys()
-        self.db_cache = {}
-        for doc in self.clients_ref.list_documents():
-            self.db_cache[doc.id] = doc.to_dict()
+        with self.db_cache_lock:
+            self.db_cache = {}
+            for doc in collection_snapshot:
+                if self.verbose:
+                    log.print_ok_blue(
+                        f"Document data: {json.dumps(doc.to_dict(), indent=4, sort_keys=True)}"
+                    )
+                self.db_cache[doc.id] = doc.to_dict()
 
         for client in clients:
             if client not in self.db_cache:
                 self._delete_client(client)
 
-    def check_and_maybe_update_items(self, client: str, item_code: str) -> None:
-        items = self.db_cache.get(client, {}).get("inventory", {}).get("items", [])
-        if not items:
-            return
+        for change in changed_docs:
+            doc_id = change.document.id
+            if change.type.name == Changes.ADDED.name:
+                log.print_ok_blue(f"Added document: {doc_id}")
+                email = safe_get(
+                    self.db_cache[doc_id], "preferences.notifications.email.email".split("."), ""
+                )
+                phone_number = safe_get(
+                    self.db_cache[doc_id],
+                    "preferences.notifications.sms.phoneNumber".split("."),
+                    "",
+                )
+                if phone_number and not phone_number.startswith("+1"):
+                    phone_number = "+1" + phone_number
+                add_client(doc_id, email, phone_number)
+            elif change.type.name == Changes.MODIFIED.name:
+                log.print_ok_blue(f"Modified document: {doc_id}")
+            elif change.type.name == Changes.REMOVED.name:
+                log.print_ok_blue(f"Removed document: {doc_id}")
+                self._delete_client(doc_id)
+                continue
 
-        db_dict = copy.deepcopy(self.db_cache[client])
+        self.callback_done.set()
 
-        for nc_code, info in db_dict["inventory"]["items"].items():
+    def _handle_firebase_update(self, client: str, db_client: defs.Client) -> None:
+        log.print_normal(f"Checking to see if we need to update {client} in database...")
+        old_db_client = copy.deepcopy(db_client)
+
+        if not db_client:
+            db_client = copy.deepcopy(defs.NULL_CLIENT)
+            log.print_normal(
+                f"Initializing new client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
+            )
+            self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
+        elif check_dict_keys_recursive(defs.NULL_CLIENT, db_client):
+            patch_missing_keys_recursive(defs.NULL_CLIENT, db_client)
+            self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
+
+        email = safe_get(
+            self.db_cache[client], "preferences.notifications.email.email".split("."), ""
+        )
+        phone_number = safe_get(
+            self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
+        )
+        if phone_number and not phone_number.startswith("+1"):
+            phone_number = "+1" + phone_number
+
+        for nc_code, info in safe_get(db_client, "inventory.items".split(".")).items():
+            if info.get("action", "") == defs.Actions.TRACKING.value:
+                add_item(client, nc_code)
+            elif info.get("action", "") == defs.Actions.NOT_TRACKING.value:
+                track_item(client, nc_code, False)
+
             with ClientDb(client).item(nc_code) as item:
-                if item and item.nc_code == nc_code and item.brand_name and item.total_available:
-                    db_dict["inventory"]["items"][nc_code]["name"] = item.brand_name
-                    db_dict["inventory"]["items"][nc_code]["available"] = item.total_available
+                if item and item.nc_code == nc_code and item.brand_name:
+                    db_client["inventory"]["items"][nc_code]["name"] = item.brand_name
+                    db_client["inventory"]["items"][nc_code]["available"] = item.total_available
+
+        with ClientDb(client).client() as db:
+            if db is not None:
+                db.email = email
+                db.phone_number = phone_number
+                db.threshold_inventory = safe_get(
+                    db_client, "inventory.inventoryChange".split("."), 0
+                )
+                db.phone_alerts = safe_get(
+                    db_client, "preferences.notifications.sms.updatesEnabled".split("."), False
+                )
+                db.email_alerts = safe_get(
+                    db_client, "preferences.notifications.email.updatesEnabled".split("."), False
+                )
 
         diff = deepdiff.DeepDiff(
-            self.db_cache[client],
-            db_dict,
+            old_db_client,
+            db_client,
             ignore_order=True,
-            ignore_numeric_type_changes=True,
-            ignore_order_func=True,
         )
         if diff:
             log.print_normal(
-                f"Updated client {client} in database:\n{json.dumps(db_dict, indent=4, sort_keys=True)}"
+                f"Updated client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
             )
-            self.clients_ref.document(client).set(json.loads(json.dumps(db_dict)))
-        elif self.verbose:
-            log.print_normal(f"Client {client} is up to date!")
+            self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
+
+    def update_from_firebase(self) -> None:
+        """
+        Synchronous update from firebase database. We do this periodically to ensure
+        that we are not missing any updates from the database. This is a fallback
+        mechanism in case the watcher fails, which it seems to periodically do.
+        """
+        log.print_warn(f"Updating from firebase database instead of cache")
+        clients = self.db_cache.keys()
+        with self.db_cache_lock:
+            self.db_cache = {}
+            for doc in self.clients_ref.list_documents():
+                self.db_cache[doc.id] = doc.get().to_dict()
+
+        for client in clients:
+            if client not in self.db_cache:
+                self._delete_client(client)
+
+    def check_and_maybe_update_to_firebase(self, client: str, item_code: str) -> None:
+        items = safe_get(self.db_cache, f"{client}.inventoryitems".split("."))
+        if not items:
+            return
+
+        db_client = copy.deepcopy(self.db_cache[client])
+
+        for nc_code, info in db_client["inventory"]["items"].items():
+            with ClientDb(client).item(nc_code) as item:
+                if item and item.nc_code == nc_code and item.brand_name and item.total_available:
+                    db_client["inventory"]["items"][nc_code]["name"] = item.brand_name
+                    db_client["inventory"]["items"][nc_code]["available"] = item.total_available
+
+        diff = deepdiff.DeepDiff(
+            self.db_cache[client],
+            db_client,
+            ignore_order=True,
+        )
+        if diff:
+            log.print_normal(
+                f"Updated client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
+            )
+            self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
+
+    def check_and_maybe_handle_firebase_db_updates(self) -> None:
+        if self.callback_done.is_set():
+            log.print_bright("Handling firebase database updates")
+            self.callback_done.clear()
+            for client, info in self.db_cache.items():
+                self._handle_firebase_update(client, info)

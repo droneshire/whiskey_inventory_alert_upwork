@@ -1,5 +1,4 @@
 import datetime
-import deepdiff
 import json
 import os
 import shutil
@@ -11,7 +10,7 @@ import pandas as pd
 
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
-from database.models.item import Item, ItemSchema
+from database.models.item import ItemSchema
 from firebase.firebase_client import FirebaseClient
 from util import email, log, wait, web2_client
 from util.twilio_util import TwilioUtil
@@ -124,7 +123,9 @@ class InventoryMonitor:
 
         for name, client in self.clients.items():
             for item in client["items"]:
-                self.firebase_client.check_and_maybe_update_items(name, item["nc_code"])
+                self.firebase_client.check_and_maybe_update_to_firebase(name, item["nc_code"])
+
+        self.firebase_client.check_and_maybe_handle_firebase_db_updates()
 
     def check_client_inventory(self, client: ClientSchema) -> None:
         if self.verbose:
