@@ -63,6 +63,8 @@ class InventoryMonitor:
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
         )
 
+        self.is_first_run = True
+
     def init(self, csv_file: str = None) -> None:
         csv_file = csv_file or self.csv_file
 
@@ -319,5 +321,10 @@ class InventoryMonitor:
     def run(self) -> None:
         if self._is_time_to_check_inventory():
             self.update_inventory(self.download_url)
-        self._check_inventory()
+
+        if not self.is_first_run:
+            self._check_inventory()
+
+        self.is_first_run = False
+
         wait.wait(self.WAIT_TIME)
