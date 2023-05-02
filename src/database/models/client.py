@@ -10,8 +10,7 @@ from database.connect import Base
 class Client(Base):
     __tablename__ = "Client"
 
-    id = Column(types.Integer, primary_key=True)
-    name = Column(types.String(80), unique=True, nullable=False)
+    id = Column(types.String(80), primary_key=True, nullable=False)
     items = relationship("Item", backref="Client")
     email = Column(types.String(80), nullable=False)
     email_alerts = Column(types.Boolean, default=True)
@@ -27,8 +26,7 @@ class Client(Base):
 
 
 class ClientSchema(Schema):  # type: ignore
-    id = fields.Int()
-    name = fields.Str()
+    id = fields.Str()
     items = fields.List(fields.Nested("ItemSchema"))
     email = fields.Str()
     email_alerts = fields.Boolean()

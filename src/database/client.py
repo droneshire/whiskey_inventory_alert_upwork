@@ -16,12 +16,12 @@ DEFAULT_DB = os.environ.get("DEFAULT_DB")
 
 class ClientDb:
     def __init__(self, name: str, db_str: str = DEFAULT_DB) -> None:
-        self.name = name
+        self.id = name
         self.items: T.List[Item] = []
         self.db_str = db_str
 
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.name == name).first()
+            client = db.query(Client).filter(Client.id == name).first()
             if client is None:
                 log.print_fail(f"Client {name} not in db!")
                 return
@@ -31,7 +31,7 @@ class ClientDb:
     @contextmanager
     def client(self) -> T.Iterator[Client]:
         with ManagedSession() as db:
-            name = db.query(Client).filter(Client.name == self.name).first()
+            name = db.query(Client).filter(Client.id == self.id).first()
 
             yield name
 
@@ -59,20 +59,20 @@ class ClientDb:
         clients = []
         with ManagedSession() as db:
             clients_db = db.query(Client).all()
-            clients = [c.name for c in clients_db]
+            clients = [c.id for c in clients_db]
         return clients
 
     @staticmethod
     def delete_client(name: str, db_str: str = DEFAULT_DB, verbose: bool = False) -> None:
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.name == name).first()
+            client = db.query(Client).filter(Client.id == name).first()
             if client is None:
                 if verbose:
                     log.print_warn(f"Not deleting {name}, it's not in db")
                 return
 
             db.query(Item).filter(Item.client_id == client.id).delete()
-            db.query(Client).filter(Client.name == name).delete()
+            db.query(Client).filter(Client.id == name).delete()
 
     @staticmethod
     def add_client(
@@ -83,7 +83,7 @@ class ClientDb:
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.name == name).first()
+            client = db.query(Client).filter(Client.id == name).first()
             if client is not None:
                 if verbose:
                     log.print_warn(f"Skipping {name} add, already in db")
@@ -92,10 +92,29 @@ class ClientDb:
             log.print_ok_arrow(f"Created {name} client")
 
             client = Client(
-                name=name, email=email, phone_number=phone_number, last_updated=func.now()
+                id=name, email=email, phone_number=phone_number, last_updated=func.now()
             )
 
             db.add(client)
+
+    @staticmethod
+    def delete_item(
+        name: str, nc_code: str, db_str: str = DEFAULT_DB, verbose: bool = False
+    ) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == name).first()
+            if client is None:
+                if verbose:
+                    log.print_warn(f"Not deleting {nc_code}, {name} doesn't exist!")
+                return
+
+            item = db.query(Item).filter(Item.nc_code == nc_code).first()
+            if item is None:
+                if verbose:
+                    log.print_warn(f"Not deleting {nc_code}, it's not in client!")
+                return
+
+            db.query(Item).filter(Item.client_id == name).filter(Item.nc_code == nc_code).delete()
 
     @staticmethod
     def add_item(
@@ -113,7 +132,7 @@ class ClientDb:
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.name == name).first()
+            client = db.query(Client).filter(Client.id == name).first()
             if client is None:
                 log.print_fail(f"Failed to add item, user doesn't exist!")
                 return
@@ -123,7 +142,7 @@ class ClientDb:
                     log.print_warn(f"Skipping add {nc_code}, already in client!")
                 return
 
-            log.print_ok_arrow(f"Created item [{nc_code}] for {client.name}")
+            log.print_ok_arrow(f"Created item [{nc_code}] for {client.id}")
 
             item = Item(
                 client_id=client.id,

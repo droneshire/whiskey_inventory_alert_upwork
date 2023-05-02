@@ -68,14 +68,14 @@ class InventoryMonitor:
     def init(self, csv_file: str = None) -> None:
         csv_file = csv_file or self.csv_file
 
-        self._update_clients_from_db()
+        self._update_cache_from_local_db()
 
         if os.path.isfile(csv_file):
             log.print_ok(f"Found existing inventory file at {csv_file}")
             self.new_inventory = self._load_inventory(csv_file)
             self.last_inventory = self.new_inventory.copy()
 
-    def _update_clients_from_db(self) -> None:
+    def _update_cache_from_local_db(self) -> None:
         client_names = ClientDb.get_client_names()
         log.print_ok(f"Found {len(client_names)} clients in local database")
         for name in client_names:
@@ -123,9 +123,9 @@ class InventoryMonitor:
             self.last_query_firebase_time = time.time()
             self.firebase_client.update_from_firebase()
 
-        for name, client in self.clients.items():
+        for id, client in self.clients.items():
             for item in client["items"]:
-                self.firebase_client.check_and_maybe_update_to_firebase(name, item["nc_code"])
+                self.firebase_client.check_and_maybe_update_to_firebase(id, item["nc_code"])
 
         self.firebase_client.check_and_maybe_handle_firebase_db_updates()
 
@@ -136,7 +136,7 @@ class InventoryMonitor:
         if not client:
             return
 
-        with ClientDb(name=client["name"]).client() as db:
+        with ClientDb(client["id"]).client() as db:
             if db is None:
                 return
             db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
@@ -162,7 +162,7 @@ class InventoryMonitor:
                 log.print_normal_arrow(f"Did not find {nc_code} in inventory")
                 continue
 
-            self._update_local_db_item(client["name"], item)
+            self._update_local_db_item(client["id"], item)
 
             if item["Total Available"] == 0:
                 log.print_normal_arrow(f"{nc_code} is out of stock")
@@ -216,7 +216,7 @@ class InventoryMonitor:
             nc_code, brand_name, total_available = info
             message += f"{nc_code}: {brand_name} is now in stock with {total_available}\n"
 
-            with ClientDb(client["name"]).client() as db:
+            with ClientDb(client["id"]).client() as db:
                 if db is None:
                     break
                 db.updates_sent += 1
@@ -303,7 +303,7 @@ class InventoryMonitor:
         return self.new_inventory
 
     def _check_inventory(self) -> None:
-        self._update_clients_from_db()
+        self._update_cache_from_local_db()
 
         if not self.clients:
             log.print_fail("No clients to check inventory for")

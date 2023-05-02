@@ -107,10 +107,8 @@ class FirebaseClient:
             log.print_normal(
                 f"Initializing new client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
             )
-            self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
         elif check_dict_keys_recursive(defs.NULL_CLIENT, db_client):
             patch_missing_keys_recursive(defs.NULL_CLIENT, db_client)
-            self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
 
         email = safe_get(
             self.db_cache[client], "preferences.notifications.email.email".split("."), ""
@@ -145,6 +143,10 @@ class FirebaseClient:
                 db.email_alerts = safe_get(
                     db_client, "preferences.notifications.email.updatesEnabled".split("."), False
                 )
+            for item in db.items:
+                if item.nc_code not in db_client["inventory"]["items"]:
+                    log.print_warn(f"Deleting item {item.nc_code} from client {client} in database")
+                    ClientDb.delete_item(client, item.nc_code)
 
         diff = deepdiff.DeepDiff(
             old_db_client,
@@ -153,7 +155,7 @@ class FirebaseClient:
         )
         if diff:
             log.print_normal(
-                f"Updated client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
+                f"Updated client {client} in database:\n{diff.to_json(indent=4, sort_keys=True)}"
             )
             self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
 
@@ -194,13 +196,13 @@ class FirebaseClient:
         )
         if diff:
             log.print_normal(
-                f"Updated client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
+                f"Updated client {client} in database:\n{diff.to_json(indent=4, sort_keys=True)}"
             )
             self.clients_ref.document(client).set(json.loads(json.dumps(db_client)))
 
     def check_and_maybe_handle_firebase_db_updates(self) -> None:
         if self.callback_done.is_set():
-            log.print_bright("Handling firebase database updates")
             self.callback_done.clear()
+            log.print_bright("Handling firebase database updates")
             for client, info in self.db_cache.items():
                 self._handle_firebase_update(client, info)
