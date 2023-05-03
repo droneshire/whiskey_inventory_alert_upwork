@@ -108,7 +108,7 @@ class InventoryMonitor:
                 db_item.supplier_allotment = int(item["Supplier Allotment"])
                 db_item.broker_name = item["Broker Name"]
 
-    def _check_and_update_firebase_should_be_updated(self) -> None:
+    def _check_and_see_if_firebase_should_be_updated(self) -> None:
         if self.firebase_client is None:
             return
 
@@ -325,7 +325,7 @@ class InventoryMonitor:
 
         log.print_bold(f"{'─' * 80}")
 
-        self._check_and_update_firebase_should_be_updated()
+        self._check_and_see_if_firebase_should_be_updated()
 
     def run(self) -> None:
         if self._is_time_to_check_inventory():

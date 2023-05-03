@@ -1,4 +1,5 @@
 import copy
+import datetime
 import enum
 import json
 import threading
@@ -7,6 +8,7 @@ import typing as T
 import deepdiff
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 from google.cloud.firestore_v1.collection import CollectionReference
 from google.cloud.firestore_v1.document import DocumentReference
@@ -68,7 +70,19 @@ class FirebaseClient:
                     log.print_ok_blue(
                         f"Document data: {json.dumps(doc.to_dict(), indent=4, sort_keys=True)}"
                     )
-                self.db_cache[doc.id] = doc.to_dict()
+                doc_dict = doc.to_dict()
+                try:
+                    db_time: DatetimeWithNanoseconds
+                    db_times = []
+                    for db_time in doc_dict["preferences"]["notifications"]["alertTimeRange"]:
+                        db_times.append(datetime.datetime.fromtimestamp(db_time.timestamp()))
+                    doc_dict["preferences"]["notifications"][
+                            "alertTimeRange"
+                        ] = db_times
+                except KeyError:
+                    log.format_fail("Failed to convert DateTimeWithNanoseconds to datetime")
+
+                self.db_cache[doc.id] = doc_dict
 
         for client in clients:
             if client not in self.db_cache:
@@ -91,6 +105,7 @@ class FirebaseClient:
                 add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")
+                add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.REMOVED.name:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
@@ -143,10 +158,22 @@ class FirebaseClient:
                 db.email_alerts = safe_get(
                     db_client, "preferences.notifications.email.updatesEnabled".split("."), False
                 )
-            for item in db.items:
-                if item.nc_code not in db_client["inventory"]["items"]:
-                    log.print_warn(f"Deleting item {item.nc_code} from client {client} in database")
-                    ClientDb.delete_item(client, item.nc_code)
+                db.alert_time_zone = safe_get(
+                    db_client, "preferences.notifications.alertTimeZone.value".split("."), ""
+                )
+                alert_range: datetime.datetime = safe_get(
+                    db_client, "preferences.notifications.alertTimeRange".split("."), []
+                )
+                if len(alert_range) == 2:
+                    db.alert_time_range_start = alert_range[0]
+                    db.alert_time_range_end = alert_range[1]
+
+                for item in db.items:
+                    if item.nc_code not in db_client["inventory"]["items"]:
+                        log.print_warn(
+                            f"Deleting item {item.nc_code} from client {client} in database"
+                        )
+                        ClientDb.delete_item(client, item.nc_code)
 
         diff = deepdiff.DeepDiff(
             old_db_client,

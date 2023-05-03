@@ -1,3 +1,4 @@
+import datetime
 import enum
 import typing as T
 
@@ -38,7 +39,7 @@ class TimeZone(T.TypedDict):
 class Notifications(T.TypedDict):
     email: Email
     sms: Sms
-    alertTimeRange: T.List[str]
+    alertTimeRange: T.List[datetime.datetime]
     alertTimeZone: TimeZone
 
 
