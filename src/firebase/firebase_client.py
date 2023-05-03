@@ -195,7 +195,7 @@ class FirebaseClient:
         with self.db_cache_lock:
             self.db_cache = {}
             for doc in self.clients_ref.list_documents():
-                doc_dict = doc.to_dict()
+                doc_dict = doc.get().to_dict()
                 try:
                     db_time: DatetimeWithNanoseconds
                     db_times = []
