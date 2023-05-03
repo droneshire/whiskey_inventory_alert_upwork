@@ -76,9 +76,7 @@ class FirebaseClient:
                     db_times = []
                     for db_time in doc_dict["preferences"]["notifications"]["alertTimeRange"]:
                         db_times.append(datetime.datetime.fromtimestamp(db_time.timestamp()))
-                    doc_dict["preferences"]["notifications"][
-                            "alertTimeRange"
-                        ] = db_times
+                    doc_dict["preferences"]["notifications"]["alertTimeRange"] = db_times
                 except KeyError:
                     log.format_fail("Failed to convert DateTimeWithNanoseconds to datetime")
 
@@ -197,7 +195,16 @@ class FirebaseClient:
         with self.db_cache_lock:
             self.db_cache = {}
             for doc in self.clients_ref.list_documents():
-                self.db_cache[doc.id] = doc.get().to_dict()
+                doc_dict = doc.to_dict()
+                try:
+                    db_time: DatetimeWithNanoseconds
+                    db_times = []
+                    for db_time in doc_dict["preferences"]["notifications"]["alertTimeRange"]:
+                        db_times.append(datetime.datetime.fromtimestamp(db_time.timestamp()))
+                    doc_dict["preferences"]["notifications"]["alertTimeRange"] = db_times
+                except KeyError:
+                    log.format_fail("Failed to convert DateTimeWithNanoseconds to datetime")
+                self.db_cache[doc.id] = doc_dict
 
         for client in clients:
             if client not in self.db_cache:
