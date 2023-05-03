@@ -272,7 +272,7 @@ class InventoryMonitor:
     def _clean_inventory(self, csv_file: str) -> pd.core.frame.DataFrame:
         try:
             dataframe = pd.read_csv(csv_file)
-        except pandas.errors.EmptyDataError:
+        except pd.errors.EmptyDataError:
             log.print_fail("Empty inventory file")
             return None
 
