@@ -72,7 +72,7 @@ class InventoryMonitor:
 
         if os.path.isfile(csv_file):
             log.print_ok(f"Found existing inventory file at {csv_file}")
-            self.new_inventory = self._load_inventory(csv_file)
+            self.new_inventory = self._clean_inventory(csv_file)
             self.last_inventory = self.new_inventory.copy()
 
     def _update_cache_from_local_db(self) -> None:
@@ -269,8 +269,12 @@ class InventoryMonitor:
 
         return matches.iloc[0]
 
-    def _load_inventory(self, csv_file: str) -> pd.core.frame.DataFrame:
-        dataframe = pd.read_csv(csv_file)
+    def _clean_inventory(self, csv_file: str) -> pd.core.frame.DataFrame:
+        try:
+            dataframe = pd.read_csv(csv_file)
+        except pandas.errors.EmptyDataError:
+            log.print_fail("Empty inventory file")
+            return None
 
         # clean up the code column
         dataframe[self.INVENTORY_CODE_KEY] = dataframe[self.INVENTORY_CODE_KEY].str.replace(
@@ -294,7 +298,12 @@ class InventoryMonitor:
                 except Exception as e:
                     log.print_fail(f"Error getting inventory: {e}")
 
-            self.new_inventory = self._load_inventory(csv_file.name)
+            inventory = self._clean_inventory(csv_file.name)
+
+            if inventory is None:
+                return None
+
+            self.new_inventory = inventory
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
 
