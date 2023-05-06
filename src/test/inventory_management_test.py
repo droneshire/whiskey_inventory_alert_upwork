@@ -58,7 +58,7 @@ class InventoryManagementTest(unittest.TestCase):
         self.twilio_stub = TwilioUtilStub()
 
         dotenv.load_dotenv(".env")
-        print(self.test_dir)
+
         init_database(self.test_dir, DEFAULT_DB, Client, True)
 
         self.before_csv = os.path.join(self.test_dir, "inventory_before.csv")
