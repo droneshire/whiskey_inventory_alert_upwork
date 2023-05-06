@@ -153,7 +153,7 @@ class FirebaseClient:
                     db_client["inventory"]["items"][nc_code]["name"] = item.brand_name
                     db_client["inventory"]["items"][nc_code]["available"] = item.total_available
 
-        with ClientDb(client).client() as db:
+        with ClientDb.client(client) as db:
             if db is not None:
                 db.email = email
                 db.phone_number = phone_number

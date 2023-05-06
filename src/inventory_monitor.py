@@ -90,8 +90,7 @@ class InventoryMonitor:
         client_names = ClientDb.get_client_names()
         log.print_ok(f"Found {len(client_names)} clients in local database")
         for name in client_names:
-            db = ClientDb(name)
-            with db.client() as client:
+            with ClientDb.client(name) as client:
                 if client is not None:
                     self.clients[name] = ClientSchema().dump(client)
 
@@ -155,7 +154,7 @@ class InventoryMonitor:
         if not client:
             return
 
-        with ClientDb(client["id"]).client() as db:
+        with ClientDb.client(client["id"]) as db:
             if db is None:
                 return
             db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
@@ -240,7 +239,7 @@ class InventoryMonitor:
                 f"{STOCK_EMOJI} {nc_code}: {brand_name} is now in stock with {total_available}\n\n"
             )
 
-            with ClientDb(client["id"]).client() as db:
+            with ClientDb.client(client["id"]) as db:
                 if db is None:
                     break
                 db.updates_sent += 1
@@ -352,7 +351,7 @@ class InventoryMonitor:
             log.print_bold(f"{'─' * 80}")
             log.print_bold(f"Checking inventory for {name}...")
             self.check_client_inventory(client)
-            with ClientDb(name).client() as db:
+            with ClientDb.client(name) as db:
                 if db is None:
                     break
                 if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:

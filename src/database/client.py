@@ -28,10 +28,11 @@ class ClientDb:
             for item in client.items:
                 self.items.append(item)
 
+    @staticmethod
     @contextmanager
-    def client(self) -> T.Iterator[Client]:
+    def client(client: str) -> T.Iterator[Client]:
         with ManagedSession() as db:
-            name = db.query(Client).filter(Client.id == self.id).first()
+            name = db.query(Client).filter(Client.id == client).first()
 
             yield name
 
@@ -42,8 +43,9 @@ class ClientDb:
 
             db.add(name)
 
+    @staticmethod
     @contextmanager
-    def item(self, nc_code: str) -> T.Iterator[Item]:
+    def item(nc_code: str) -> T.Iterator[Item]:
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.nc_code == nc_code).first()
 
