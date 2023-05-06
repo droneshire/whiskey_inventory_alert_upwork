@@ -27,7 +27,7 @@ class TwilioUtilStub(TwilioUtil):
         self.now: datetime.datetime = datetime.datetime(2021, 1, 1, 12, 0, 0)
 
     def send_sms_if_in_window(
-        self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.now()
+        self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.utcnow()
     ) -> None:
         super().send_sms_if_in_window(to_number, content, self.now)
 
@@ -229,8 +229,8 @@ class InventoryManagementTest(unittest.TestCase):
         now = datetime.datetime(2020, 1, 1, 0, 0, 0)
 
         # force the time to be outside the window
-        start_time = datetime.time(8, 0, 0)
-        end_time = datetime.time(22, 0, 0)
+        start_time = 8 * 60
+        end_time = 22 * 60
         timezone = "America/Los_Angeles"
         self.twilio_stub.update_send_window(start_time, end_time, timezone)
 

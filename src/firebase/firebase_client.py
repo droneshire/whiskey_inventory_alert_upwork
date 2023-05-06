@@ -72,19 +72,7 @@ class FirebaseClient:
             f"Updated client {client} in database:\n{diff.to_json(indent=4, sort_keys=True)}"
         )
 
-        client_dict = copy.deepcopy(self.db_cache[client])
-
-        if client_dict.get("preferences", {}).get("notifications", {}).get("alertTimeRange"):
-            del client_dict["preferences"]["notifications"]["alertTimeRange"]
-
-            client_dict_firestore = json.loads(json.dumps(client_dict))
-
-            client_dict_firestore["preferences"]["notifications"]["alertTimeRange"] = [
-                datetime.datetime.strptime(t, self.TIME_FORMAT)
-                for t in self.db_cache[client]["preferences"]["notifications"]["alertTimeRange"]
-            ]
-        else:
-            client_dict_firestore = json.loads(json.dumps(client_dict))
+        client_dict_firestore = json.loads(json.dumps(self.db_cache[client]))
 
         self.clients_ref.document(client).set(client_dict_firestore)
 
@@ -100,22 +88,7 @@ class FirebaseClient:
         with self.db_cache_lock:
             self.db_cache = {}
             for doc in collection_snapshot:
-                if self.verbose:
-                    log.print_ok_blue(
-                        f"Document data: {json.dumps(doc.to_dict(), indent=4, sort_keys=True)}"
-                    )
-
-                db_time: DatetimeWithNanoseconds
-                db_times = []
-
-                doc_dict = doc.to_dict()
-
-                if doc_dict:
-                    for db_time in doc_dict["preferences"]["notifications"]["alertTimeRange"]:
-                        db_times.append(db_time.strftime(self.TIME_FORMAT))
-                    doc_dict["preferences"]["notifications"]["alertTimeRange"] = db_times
-
-                    self.db_cache[doc.id] = doc_dict
+                self.db_cache[doc.id] = doc.to_dict()
 
         for client in clients:
             if client not in self.db_cache:
@@ -155,7 +128,9 @@ class FirebaseClient:
             log.print_normal(
                 f"Initializing new client {client} in database:\n{json.dumps(db_client, indent=4, sort_keys=True)}"
             )
-        elif check_dict_keys_recursive(defs.NULL_CLIENT, db_client):
+        missing_keys = check_dict_keys_recursive(defs.NULL_CLIENT, db_client)
+        if missing_keys:
+            log.print_warn(f"Missing keys in client {client}:\n{missing_keys}")
             patch_missing_keys_recursive(defs.NULL_CLIENT, db_client)
 
         email = safe_get(
@@ -198,12 +173,8 @@ class FirebaseClient:
                     db_client, "preferences.notifications.alertTimeRange".split("."), []
                 )
                 if len(alert_range) == 2:
-                    db.alert_time_range_start = datetime.datetime.strptime(
-                        alert_range[0], self.TIME_FORMAT
-                    )
-                    db.alert_time_range_end = datetime.datetime.strptime(
-                        alert_range[1], self.TIME_FORMAT
-                    )
+                    db.alert_time_range_start = alert_range[0]
+                    db.alert_time_range_end = alert_range[1]
 
                 items = [i.nc_code for i in db.items]
 
@@ -233,16 +204,7 @@ class FirebaseClient:
         with self.db_cache_lock:
             self.db_cache = {}
             for doc in self.clients_ref.list_documents():
-                doc_dict = doc.get().to_dict()
-                try:
-                    db_time: DatetimeWithNanoseconds
-                    db_times = []
-                    for db_time in doc_dict["preferences"]["notifications"]["alertTimeRange"]:
-                        db_times.append(db_time.strftime("%Y_%m_%d%H_%M_%S_%f"))
-                    doc_dict["preferences"]["notifications"]["alertTimeRange"] = db_times
-                except KeyError:
-                    log.format_fail("Failed to convert DateTimeWithNanoseconds to datetime")
-                self.db_cache[doc.id] = doc_dict
+                self.db_cache[doc.id] = doc.get().to_dict()
 
         for client in clients:
             if client not in self.db_cache:

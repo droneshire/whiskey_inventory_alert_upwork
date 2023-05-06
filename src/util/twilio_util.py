@@ -41,25 +41,22 @@ class TwilioUtil:
     def _get_minutes_from_time(self, time: datetime.datetime) -> int:
         return time.hour * 60 + time.minute
 
-    def update_send_window(
-        self, start_time: datetime.datetime, end_time: datetime.datetime, timezone: str
-    ) -> None:
-        self.start_time_minutes = self._get_minutes_from_time(start_time)
-        self.end_time_minutes = self._get_minutes_from_time(end_time)
-        self.timezone = pytz.timezone(timezone)
+    def update_send_window(self, start_time: int, end_time: int, timezone: str) -> None:
         log.print_bright(
-            "Updated send window to: {} - {} ({})",
-            start_time.strftime("%H:%M"),
-            end_time.strftime("%H:%M"),
+            "Updating send window to: {} - {} ({})",
+            f"{start_time // 60}:{start_time % 60:02}",
+            f"{end_time // 60}:{end_time % 60:02}",
             timezone,
         )
+        self.start_time_minutes = start_time
+        self.end_time_minutes = end_time
+        self.timezone = pytz.timezone(timezone)
 
     def send_sms_if_in_window(
-        self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.now()
+        self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.utcnow()
     ) -> None:
         self.message_queue.append((to_number, content))
-        if self.verbose:
-            log.print_normal(f"Added SMS to queue: {to_number} - {content}")
+        log.print_normal(f"Added SMS to queue: {to_number} - {content}")
         self.check_sms_queue(now)
 
     def send_sms(self, to_number: str, content: str) -> None:
@@ -75,9 +72,12 @@ class TwilioUtil:
         if self.verbose:
             log.print_bold(f"Sent SMS: {message.sid} - {content}")
 
-    def check_sms_queue(self, now: datetime.datetime = datetime.datetime.now()) -> None:
-        now.replace(tzinfo=pytz.utc).astimezone(tz=self.timezone)
-        now_minutes = self._get_minutes_from_time(now)
+    def check_sms_queue(self, now: datetime.datetime = datetime.datetime.utcnow()) -> None:
+        log.print_normal(f"Time in UTC: {now.strftime('%H:%M:%S')}")
+        now_with_tz = pytz.utc.localize(now)
+        converted_to_tz = now_with_tz.astimezone(self.timezone)
+        log.print_normal(f"Time in {self.timezone}: {converted_to_tz.strftime('%H:%M:%S')}")
+        now_minutes = self._get_minutes_from_time(converted_to_tz)
 
         is_within_window = (
             now_minutes >= self.start_time_minutes and now_minutes <= self.end_time_minutes
@@ -89,4 +89,10 @@ class TwilioUtil:
                 time.sleep(self.time_between_sms)
             self.message_queue = []
         else:
-            log.print_ok_blue_arrow("Not in send window, not sending SMS")
+            log.print_ok_blue_arrow(
+                f"Not in send window "
+                f"({self.start_time_minutes // 60}:{self.start_time_minutes % 60:02}-"
+                f"{self.end_time_minutes // 60}:{self.end_time_minutes % 60:02}),"
+                f" currently {now_minutes // 60}:{now_minutes % 60:02} "
+                f"{self.timezone}. Not sending SMS"
+            )

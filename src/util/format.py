@@ -20,3 +20,18 @@ def dict_keys_snake_to_camel_deep(d):
     if isinstance(d, dict):
         d = {snake_to_camel(k): dict_keys_snake_to_camel_deep(v) for k, v in d.items()}
     return d
+
+
+def get_pretty_seconds(s: int, use_days: bool = False) -> str:
+    """Given an amount of seconds, return a formatted string with
+    hours, minutes and seconds; taken from
+    https://stackoverflow.com/a/775075/2972183"""
+    s = int(s)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    if use_days:
+        d, h = divmod(h, 24)
+        string = f"{d:d}d:{h:d}h:{m:02d}m:{s:02d}s"
+    else:
+        string = f"{h:d}h:{m:02d}m:{s:02d}s"
+    return string

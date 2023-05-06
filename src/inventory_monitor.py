@@ -14,7 +14,10 @@ from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from firebase.firebase_client import FirebaseClient
 from util import email, log, wait, web2_client
+from util.format import get_pretty_seconds
 from util.twilio_util import TwilioUtil
+
+STOCK_EMOJI = "\U0001F37A"
 
 
 class InventoryMonitor:
@@ -24,7 +27,7 @@ class InventoryMonitor:
     }
     TIME_BETWEEN_FIREBASE_QUERIES = {
         "prod": 60 * 15,
-        "test": 30,
+        "test": 60,
     }
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
@@ -131,6 +134,13 @@ class InventoryMonitor:
         if update_from_firebase:
             self.last_query_firebase_time = time.time()
             self.firebase_client.update_watchers()
+        else:
+            time_till_next_update = (
+                self.TIME_BETWEEN_FIREBASE_QUERIES[self.mode] - time_since_last_update
+            )
+            log.print_normal(
+                f"Next firebase manual refresh in {get_pretty_seconds(time_till_next_update)}"
+            )
 
         for id, client in self.clients.items():
             for item in client["items"]:
@@ -155,12 +165,13 @@ class InventoryMonitor:
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
 
-            if not item_schema["is_tracking"]:
+            if nc_code is None:
                 continue
 
             log.print_ok_arrow(f"Checking {nc_code}")
 
-            if nc_code is None:
+            if not item_schema["is_tracking"]:
+                log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
                 continue
 
             item: pd.core.frame.DataFrame = self._get_item_from_inventory(
@@ -201,7 +212,9 @@ class InventoryMonitor:
                 log.print_ok_blue_arrow(
                     f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item['Total Available']}"
                 )
-            log.print_ok_blue_arrow(f"{nc_code} {brand_name} change: {delta_str} units")
+            log.print_ok_blue_arrow(
+                f"{STOCK_EMOJI} {nc_code} {brand_name} change: {delta_str} units"
+            )
 
             if previous_item is not None and previous_available != 0:
                 if self.verbose:
@@ -223,7 +236,9 @@ class InventoryMonitor:
 
         for info in items_to_update:
             nc_code, brand_name, total_available = info
-            message += f"{nc_code}: {brand_name} is now in stock with {total_available}\n"
+            message += (
+                f"{STOCK_EMOJI} {nc_code}: {brand_name} is now in stock with {total_available}\n\n"
+            )
 
             with ClientDb(client["id"]).client() as db:
                 if db is None:
@@ -255,7 +270,7 @@ class InventoryMonitor:
             email.send_email(
                 emails=[self.email],
                 to_addresses=[client["email"]],
-                subject="NC ABC Inventory Alert",
+                subject="{STOCK_EMOJI} NC ABC Inventory Alert",
                 content=message,
             )
 
@@ -296,6 +311,8 @@ class InventoryMonitor:
         if self.new_inventory is not None:
             self.last_inventory = self.new_inventory.copy()
 
+        log.format_bright(f"Updating inventory from {download_url}")
+
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
@@ -335,6 +352,13 @@ class InventoryMonitor:
             log.print_bold(f"{'─' * 80}")
             log.print_bold(f"Checking inventory for {name}...")
             self.check_client_inventory(client)
+            with ClientDb(name).client() as db:
+                if db is None:
+                    break
+                if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
+                    self.twilio_util.update_send_window(
+                        db.alert_time_range_start, db.alert_time_range_end, db.alert_time_zone
+                    )
 
         log.print_bold(f"{'─' * 80}")
 
