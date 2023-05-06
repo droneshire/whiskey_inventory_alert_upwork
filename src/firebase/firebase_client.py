@@ -238,7 +238,6 @@ class FirebaseClient:
                     for db_time in doc_dict["preferences"]["notifications"]["alertTimeRange"]:
                         db_times.append(db_time.strftime("%Y_%m_%d%H_%M_%S_%f"))
                     doc_dict["preferences"]["notifications"]["alertTimeRange"] = db_times
-                    print(db_times)
                 except KeyError:
                     log.format_fail("Failed to convert DateTimeWithNanoseconds to datetime")
                 self.db_cache[doc.id] = doc_dict

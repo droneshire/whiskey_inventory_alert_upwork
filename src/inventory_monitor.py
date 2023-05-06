@@ -224,7 +224,7 @@ class InventoryMonitor:
                 log.print_normal_arrow("No items to update, not sending any alerts")
             return
 
-        log.print_ok_arrow(message)
+        log.print_ok(message)
 
         if self.dry_run:
             log.print_normal_arrow("Dry run, not sending SMS")
@@ -288,7 +288,7 @@ class InventoryMonitor:
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
-            else:
+            elif self._is_time_to_check_inventory():
                 try:
                     self.web.url_download(
                         download_url, csv_file.name, self.download_key, timeout=30.0
@@ -326,8 +326,7 @@ class InventoryMonitor:
         self._check_and_see_if_firebase_should_be_updated()
 
     def run(self) -> None:
-        if self._is_time_to_check_inventory():
-            self.update_inventory(self.download_url)
+        self.update_inventory(self.download_url)
 
         self._check_inventory()
 
