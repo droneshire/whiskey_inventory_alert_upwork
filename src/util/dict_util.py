@@ -1,7 +1,9 @@
 import typing as T
 
 
-def check_dict_keys_recursive(dict1: T.Dict[T.Any, T.Any], dict2: [T.Any, T.Any]) -> T.List[T.Any]:
+def check_dict_keys_recursive(
+    dict1: T.Dict[T.Any, T.Any], dict2: T.Dict[T.Any, T.Any]
+) -> T.List[T.Any]:
     missing_keys = []
     for key in dict1.keys():
         if key not in dict2.keys():

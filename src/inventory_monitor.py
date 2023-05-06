@@ -32,7 +32,7 @@ class InventoryMonitor:
         credentials_file: str,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
-        time_between_inventory_checks: int = None,
+        time_between_inventory_checks: T.Optional[int] = None,
         dry_run: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -51,13 +51,13 @@ class InventoryMonitor:
         self.clients: T.Dict[str, ClientSchema] = {}
         self.db = None
 
-        self.last_inventory: pd.core.frame.DataFrame = None
-        self.new_inventory: pd.core.frame.DataFrame = None
+        self.last_inventory: T.Optional[pd.core.frame.DataFrame] = None
+        self.new_inventory: T.Optional[pd.core.frame.DataFrame] = None
 
         self.web = web2_client.Web2Client()
 
-        self.last_inventory_update_time = None
-        self.last_query_firebase_time = None
+        self.last_inventory_update_time: T.Optional[float] = None
+        self.last_query_firebase_time: T.Optional[float] = None
 
         self.firebase_client: FirebaseClient = (
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
@@ -65,7 +65,7 @@ class InventoryMonitor:
 
         self.is_first_run = True
 
-    def init(self, csv_file: str = None) -> None:
+    def init(self, csv_file: str = "") -> None:
         csv_file = csv_file or self.csv_file
 
         self._update_cache_from_local_db()
@@ -252,7 +252,7 @@ class InventoryMonitor:
 
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
-    ) -> pd.core.frame.DataFrame:
+    ) -> T.Optional[pd.core.frame.DataFrame]:
         if dataframe is None or dataframe.empty:
             log.print_warn("No inventory loaded")
             return None

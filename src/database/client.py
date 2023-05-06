@@ -11,7 +11,7 @@ from database.models.client import Client
 from database.models.item import Item
 from util import log
 
-DEFAULT_DB = os.environ.get("DEFAULT_DB")
+DEFAULT_DB = os.environ.get("DEFAULT_DB", "")
 
 
 class ClientDb:

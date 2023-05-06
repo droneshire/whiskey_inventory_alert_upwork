@@ -45,7 +45,7 @@ class InventoryManagementTest(unittest.TestCase):
     after_csv_many: str = ""
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
-    temp_csv_file: T.IO[str] = None
+    temp_csv_file: T.Optional[tempfile._TemporaryFileWrapper[bytes]] = None
 
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
@@ -83,7 +83,7 @@ class InventoryManagementTest(unittest.TestCase):
     def tearDown(self) -> None:
         dotenv.load_dotenv(".env")
 
-        if os.path.isfile(self.temp_csv_file.name):
+        if self.temp_csv_file and os.path.isfile(self.temp_csv_file.name):
             os.remove(self.temp_csv_file.name)
 
         close_database()

@@ -3,7 +3,6 @@ import typing as T
 import yagmail
 
 from util import log
-from util.security import decrypt_secret
 
 
 class Email(T.TypedDict):
@@ -20,7 +19,7 @@ def get_email_accounts_from_password(
     email_accounts = []
     for email_account in encrypted_emails:
         assert email_account["password"], "Missing password!"
-        email_password = decrypt_secret(encrypt_password, email_account["password"])
+        email_password = email_account["password"]
         email_accounts.append(
             Email(
                 address=email_account["user"],
@@ -36,7 +35,7 @@ def send_email_raw(
     to_addresses: T.List[str],
     subject: str,
     content: str,
-    attachments: T.List[str] = None,
+    attachments: T.Optional[T.List[str]] = None,
     verbose: bool = False,
 ) -> None:
     with yagmail.SMTP(email["address"], email["password"]) as email_sender:
@@ -59,7 +58,7 @@ def send_email(
     to_addresses: T.List[str],
     subject: str,
     content: str,
-    attachments: T.List[str] = None,
+    attachments: T.Optional[T.List[str]] = None,
     verbose: bool = False,
 ) -> None:
     for email in emails:

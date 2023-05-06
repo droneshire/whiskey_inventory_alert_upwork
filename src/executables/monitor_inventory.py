@@ -14,7 +14,6 @@ from database.models.client import Client
 from inventory_monitor import InventoryMonitor
 from util import log, wait
 from util.email import Email
-from util.security import ENCRYPT_PASSWORD_ENV_VAR, decrypt_secret
 from util.twilio_util import TwilioUtil
 
 
@@ -65,7 +64,7 @@ def get_email_accounts() -> T.List[Email]:
 
 
 def get_credentials_file() -> str:
-    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
     exec_dir = os.path.dirname(os.path.realpath(__file__))
     src_dir = os.path.dirname(exec_dir)
     top_dir = os.path.dirname(src_dir)
@@ -92,8 +91,8 @@ def main() -> None:
     email_accounts = get_email_accounts()
 
     monitor: InventoryMonitor = InventoryMonitor(
-        download_url=os.environ.get("INVENTORY_DOWNLOAD_URL"),
-        download_key=os.environ.get("INVENTORY_DOWNLOAD_KEY"),
+        download_url=os.environ.get("INVENTORY_DOWNLOAD_URL", ""),
+        download_key=os.environ.get("INVENTORY_DOWNLOAD_KEY", ""),
         twilio_util=twilio_util,
         admin_email=email_accounts[0],
         log_dir=args.log_dir,
