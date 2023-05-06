@@ -226,12 +226,15 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
+        now = datetime.datetime(2020, 1, 1, 0, 0, 0)
+
         # force the time to be outside the window
-        self.twilio_stub.now = datetime.datetime(2020, 1, 1, 0, 0, 0)
         start_time = datetime.time(8, 0, 0)
         end_time = datetime.time(22, 0, 0)
         timezone = "America/Los_Angeles"
         self.twilio_stub.update_send_window(start_time, end_time, timezone)
+
+        self.twilio_stub.now = now
 
         df = self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
@@ -240,7 +243,7 @@ class InventoryManagementTest(unittest.TestCase):
         self.assertEqual(len(self.twilio_stub.message_queue), 1)
 
         self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12, 0, 0)
-        self.twilio_stub.check_sms_queue()
+        self.twilio_stub.check_sms_queue(self.twilio_stub.now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
         self.assertEqual(len(self.twilio_stub.message_queue), 0)

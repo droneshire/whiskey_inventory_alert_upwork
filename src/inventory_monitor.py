@@ -241,7 +241,7 @@ class InventoryMonitor:
             log.print_normal_arrow("Dry run, not sending SMS")
             return
 
-        if not item_schema or item_schema["is_tracking"]:
+        if not item_schema or not item_schema["is_tracking"]:
             log.print_normal_arrow("Not sending alert, item is not being tracked")
             return
 
