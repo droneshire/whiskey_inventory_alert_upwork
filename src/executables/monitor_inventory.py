@@ -3,7 +3,6 @@ Monitor the inventory of the store
 """
 
 import argparse
-import getpass
 import os
 import typing as T
 
@@ -12,7 +11,7 @@ import dotenv
 from database.connect import init_database
 from database.models.client import Client
 from inventory_monitor import InventoryMonitor
-from util import log, wait
+from util import log
 from util.email import Email
 from util.twilio_util import TwilioUtil
 
