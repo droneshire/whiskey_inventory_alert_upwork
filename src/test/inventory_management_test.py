@@ -20,7 +20,7 @@ from util.twilio_util import TwilioUtil
 
 class TwilioUtilStub(TwilioUtil):
     def __init__(self):
-        super().__init__("", "", "", verbose=True)
+        super().__init__("", "", "", verbose=True, time_between_sms=0)
         self.num_sent = 0
         self.send_to = ""
         self.content = ""

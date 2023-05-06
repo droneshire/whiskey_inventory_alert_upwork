@@ -1,5 +1,6 @@
 import datetime
 import pytz
+import time
 import typing as T
 from twilio.rest import Client
 
@@ -8,7 +9,13 @@ from util import log
 
 class TwilioUtil:
     def __init__(
-        self, my_number: str, auth_token: str, sid: str, dry_run=False, verbose=False
+        self,
+        my_number: str,
+        auth_token: str,
+        sid: str,
+        dry_run=False,
+        verbose=False,
+        time_between_sms: int = 1,
     ) -> None:
         self.dry_run = dry_run
         self.verbose = verbose
@@ -26,6 +33,7 @@ class TwilioUtil:
         self.start_time_minutes: int = 9 * 60 + 30
         self.end_time_minutes: int = 17 * 60 + 30
         self.timezone: T.Any = pytz.timezone("America/Los_Angeles")
+        self.time_between_sms: int = time_between_sms
 
     def _get_minutes_from_time(self, time: datetime.datetime) -> int:
         return time.hour * 60 + time.minute
@@ -70,7 +78,7 @@ class TwilioUtil:
         if now_minutes >= self.start_time_minutes and now_minutes <= self.end_time_minutes:
             for message in self.message_queue:
                 self.send_sms(message[0], message[1])
+                time.sleep(self.time_between_sms)
             self.message_queue = []
         else:
-            if self.verbose:
-                log.print_normal("Not in send window, not sending SMS")
+            log.print_ok_blue_arrow("Not in send window, not sending SMS")
