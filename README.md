@@ -1,4 +1,5 @@
 # NC ABC Inventory Alert Bot
+![example workflow](https://github.com/github/docs/actions/workflows/python-app.yml/badge.svg)
 
 Track drink inventory and alert to various users via text when new inventory comes on the market.
 
