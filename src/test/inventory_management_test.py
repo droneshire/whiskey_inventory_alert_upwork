@@ -8,7 +8,7 @@ import unittest
 
 import dotenv
 
-from database.client import ClientDb
+from database.client import ClientDb, DEFAULT_DB
 from database.connect import close_database, init_database, remove_database
 from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import Client, ClientSchema
@@ -59,7 +59,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         dotenv.load_dotenv(".env")
         print(self.test_dir)
-        init_database(self.test_dir, os.getenv("DEFAULT_DB"), Client, True)
+        init_database(self.test_dir, DEFAULT_DB, Client, True)
 
         self.before_csv = os.path.join(self.test_dir, "inventory_before.csv")
         self.after_csv = os.path.join(self.test_dir, "inventory_after.csv")
@@ -94,7 +94,7 @@ class InventoryManagementTest(unittest.TestCase):
             os.remove(self.temp_csv_file.name)
 
         close_database()
-        remove_database(self.test_dir, os.getenv("DEFAULT_DB"))
+        remove_database(self.test_dir, DEFAULT_DB)
 
         self.monitor = None
         self.twilio_stub = None

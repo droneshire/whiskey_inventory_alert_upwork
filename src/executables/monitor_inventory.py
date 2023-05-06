@@ -8,7 +8,7 @@ import typing as T
 
 import dotenv
 
-from database.connect import init_database
+from database.connect import init_database, DEFAULT_DB
 from database.models.client import Client
 from inventory_monitor import InventoryMonitor
 from util import log
@@ -77,7 +77,7 @@ def main() -> None:
 
     log.setup_log(args.log_level, args.log_dir, "db_convert")
 
-    init_database(args.log_dir, os.environ.get("DEFAULT_DB"), Client, args.force_update)
+    init_database(args.log_dir, DEFAULT_DB, Client, args.force_update)
 
     twilio_util = TwilioUtil(
         my_number=os.environ.get("TWILIO_FROM_SMS_NUMBER"),

@@ -4,7 +4,7 @@ import typing as T
 
 import dotenv
 
-from database.connect import init_database
+from database.connect import init_database, DEFAULT_DB
 from database.helpers import add_client, add_or_update_item
 from database.models.client import Client
 from util import log
@@ -65,7 +65,7 @@ def main() -> None:
     args: argparse.Namespace = parse_args()
 
     dotenv.load_dotenv(".env")
-    database_name = os.environ.get("DEFAULT_DB", "")
+    database_name = DEFAULT_DB
     init_database(args.log_dir, database_name, Client)
 
     add_client(args.name, args.email, args.phone_number)
