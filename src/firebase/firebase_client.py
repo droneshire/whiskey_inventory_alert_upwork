@@ -246,6 +246,8 @@ class FirebaseClient:
             if client not in self.db_cache:
                 self._delete_client(client)
 
+        self.callback_done.set()
+
     def check_and_maybe_update_to_firebase(self, client: str, item_code: str) -> None:
         items = safe_get(self.db_cache, f"{client}.inventoryitems".split("."))
         if not items:

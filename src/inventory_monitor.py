@@ -17,8 +17,14 @@ from util.twilio_util import TwilioUtil
 
 
 class InventoryMonitor:
-    TIME_BETWEEN_INVENTORY_CHECKS = 60 * 2
-    TIME_BETWEEN_FIREBASE_QUERIES = 60 * 30
+    TIME_BETWEEN_INVENTORY_CHECKS = {
+        "prod": 60 * 2,
+        "test": 30,
+    }
+    TIME_BETWEEN_FIREBASE_QUERIES = {
+        "prod": 60 * 15,
+        "test": 30,
+    }
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
 
@@ -42,11 +48,14 @@ class InventoryMonitor:
         self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
         self.use_local_db = use_local_db
-        self.time_between_inventory_checks = (
-            time_between_inventory_checks or self.TIME_BETWEEN_INVENTORY_CHECKS
-        )
         self.dry_run = dry_run
         self.verbose = verbose
+
+        self.mode = "prod" if not dry_run else "test"
+
+        self.time_between_inventory_checks = (
+            time_between_inventory_checks or self.TIME_BETWEEN_INVENTORY_CHECKS[self.mode]
+        )
 
         self.clients: T.Dict[str, ClientSchema] = {}
         self.db = None
@@ -115,7 +124,9 @@ class InventoryMonitor:
             update_from_firebase = True
         else:
             time_since_last_update = time.time() - self.last_query_firebase_time
-            update_from_firebase = time_since_last_update > self.TIME_BETWEEN_FIREBASE_QUERIES
+            update_from_firebase = (
+                time_since_last_update > self.TIME_BETWEEN_FIREBASE_QUERIES[self.mode]
+            )
 
         if update_from_firebase:
             self.last_query_firebase_time = time.time()
