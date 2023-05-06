@@ -45,7 +45,7 @@ class InventoryManagementTest(unittest.TestCase):
     after_csv_many: str = ""
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
-    temp_csv_file: T.Optional[tempfile._TemporaryFileWrapper[bytes]] = None
+    temp_csv_file: T.Any = None
 
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
