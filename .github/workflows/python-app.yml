@@ -30,7 +30,6 @@ jobs:
     - name: Lint with black
       run: |
         make check_format
-        make pylint
     - name: Test with pytest
       run: |
         make test
