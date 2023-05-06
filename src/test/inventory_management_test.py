@@ -8,7 +8,7 @@ import unittest
 
 import dotenv
 
-from database.client import ClientDb, DEFAULT_DB
+from database.client import DEFAULT_DB, ClientDb
 from database.connect import close_database, init_database, remove_database
 from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import Client, ClientSchema

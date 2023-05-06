@@ -4,7 +4,8 @@ import typing as T
 
 import dotenv
 
-from database.connect import init_database, DEFAULT_DB
+from database.client import DEFAULT_DB
+from database.connect import init_database
 from database.helpers import add_client, add_or_update_item
 from database.models.client import Client
 from util import log

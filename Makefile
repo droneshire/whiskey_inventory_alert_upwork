@@ -39,7 +39,7 @@ inventory_bot_prod:
 	$(RUN_PY) executables.monitor_inventory --wait-time 60
 
 inventory_bot_dev:
-	$(RUN_PY) executables.monitor_inventory --wait-time 10 --dry-run
+	$(RUN_PY) executables.monitor_inventory --wait-time 10 --dry-run --ignore-time-window
 
 create_test_db:
 	$(RUN_PY) database.executables.add_to_database --item 00009

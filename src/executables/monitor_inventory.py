@@ -8,7 +8,8 @@ import typing as T
 
 import dotenv
 
-from database.connect import init_database, DEFAULT_DB
+from database.client import DEFAULT_DB
+from database.connect import init_database
 from database.models.client import Client
 from inventory_monitor import InventoryMonitor
 from util import log
