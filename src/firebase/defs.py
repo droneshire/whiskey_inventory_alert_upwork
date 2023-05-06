@@ -39,7 +39,7 @@ class TimeZone(T.TypedDict):
 class Notifications(T.TypedDict):
     email: Email
     sms: Sms
-    alertTimeRange: T.List[datetime.datetime]
+    alertTimeRange: T.List[str]
     alertTimeZone: TimeZone
 
 
