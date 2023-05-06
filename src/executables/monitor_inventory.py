@@ -42,6 +42,12 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--verbose", action="store_true", help="Print more information")
 
+    parser.add_argument(
+        "--ignore-time-window",
+        action="store_true",
+        help="Ignore the time window for sending SMS",
+    )
+
     return parser.parse_args()
 
 
@@ -85,6 +91,7 @@ def main() -> None:
         sid=os.environ.get("TWILIO_ACCOUNT_SID"),
         dry_run=args.dry_run,
         verbose=args.verbose,
+        ignore_time_window=args.ignore_time_window,
     )
 
     email_accounts = get_email_accounts()
