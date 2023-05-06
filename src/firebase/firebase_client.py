@@ -3,6 +3,7 @@ import datetime
 import enum
 import json
 import threading
+import time
 import typing as T
 
 import deepdiff
@@ -16,7 +17,7 @@ from google.cloud.firestore_v1.watch import DocumentChange, Watch
 from sqlalchemy.sql import func
 
 from database.client import ClientDb
-from database.helpers import add_client, add_item, track_item
+from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import ClientSchema
 from database.models.item import Item
 from firebase import defs
@@ -168,7 +169,7 @@ class FirebaseClient:
 
         for nc_code, info in safe_get(db_client, "inventory.items".split(".")).items():
             if info.get("action", "") == defs.Actions.TRACKING.value:
-                add_item(client, nc_code)
+                add_or_update_item(client, nc_code)
             elif info.get("action", "") == defs.Actions.NOT_TRACKING.value:
                 track_item(client, nc_code, False)
 
@@ -206,19 +207,20 @@ class FirebaseClient:
 
                 items = [i.nc_code for i in db.items]
 
-        items_to_delete = []
         for nc_code in items:
             with ClientDb(client).item(nc_code) as db_item:
                 if db_item is not None and nc_code not in db_client["inventory"]["items"]:
                     log.print_warn(f"Deleting item {nc_code} from client {client} in database")
-                    items_to_delete.append(nc_code)
-
-        # Delete items that are no longer being tracked outside of the previous
-        # db session context
-        for nc_code in items_to_delete:
-            ClientDb.delete_item(client, nc_code)
+                    db_item.client_id = None
 
         self._maybe_upload_db_cache_to_firestore(client, old_db_client, db_client)
+
+    def update_watchers(self) -> None:
+        log.print_warn(f"Updating watcher...")
+        if self.clients_watcher:
+            self.clients_watcher.unsubscribe()
+
+        self.clients_watcher = self.clients_ref.on_snapshot(self._collection_snapshot_handler)
 
     def update_from_firebase(self) -> None:
         """

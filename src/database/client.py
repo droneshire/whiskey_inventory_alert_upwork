@@ -23,7 +23,6 @@ class ClientDb:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()
             if client is None:
-                log.print_fail(f"Client {name} not in db!")
                 return
             for item in client.items:
                 self.items.append(item)
@@ -117,7 +116,7 @@ class ClientDb:
             db.query(Item).filter(Item.client_id == name).filter(Item.nc_code == nc_code).delete()
 
     @staticmethod
-    def add_item(
+    def add_or_update_item(
         name: str,
         nc_code: str,
         brand_name: str = None,
@@ -133,21 +132,32 @@ class ClientDb:
     ) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()
-            if client is None:
-                log.print_fail(f"Failed to add item, user doesn't exist!")
-                return
 
-            if nc_code in [i.nc_code for i in client.items]:
+            if client and nc_code in [i.nc_code for i in client.items]:
                 if verbose:
                     log.print_warn(f"Skipping add {nc_code}, already in client!")
                 return
 
-            log.print_ok_arrow(f"Created item [{nc_code}] for {client.id}")
+            item = db.query(Item).filter(Item.nc_code == nc_code).first()
 
-            item = Item(
-                client_id=client.id,
-                nc_code=nc_code,
-            )
+            # if it is in the database and not assigned to a client, nothing to update
+            if item is not None and client is None:
+                if verbose:
+                    log.print_warn(f"Skipping add {nc_code}, already in db!")
+                return
+
+            if client is None:
+                item = Item(nc_code=nc_code)
+                log.print_ok_arrow(f"Created item [{nc_code}]")
+            elif item is None:
+                item = Item(
+                    client_id=client.id,
+                    nc_code=nc_code,
+                )
+                log.print_ok_arrow(f"Created item [{nc_code}] for {client.id}")
+            else:
+                log.print_ok_arrow(f"Updated item [{nc_code}] for {client.id}")
+                item.client_id = client.id
 
             if brand_name is not None:
                 item.brand_name = brand_name

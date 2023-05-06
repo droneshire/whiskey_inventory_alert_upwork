@@ -6,9 +6,9 @@ def add_client(name: str, email: str, phone_number: str) -> None:
     ClientDb.add_client(name, email, phone_number)
 
 
-def add_item(name: str, item_code: str) -> None:
+def add_or_update_item(name: str, item_code: str) -> None:
     """Add an item to the database"""
-    ClientDb.add_item(name, item_code)
+    ClientDb.add_or_update_item(name, item_code)
 
 
 def track_item(name: str, item_code: str, do_track: bool) -> None:
@@ -18,4 +18,4 @@ def track_item(name: str, item_code: str, do_track: bool) -> None:
             item.is_tracking = do_track
             return
 
-    add_item(name, item_code)
+    add_or_update_item(name, item_code)

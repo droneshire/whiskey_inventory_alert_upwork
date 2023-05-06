@@ -9,7 +9,7 @@ import dotenv
 
 from database.client import ClientDb
 from database.connect import close_database, init_database, remove_database
-from database.helpers import add_client, add_item, track_item
+from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
@@ -96,7 +96,7 @@ class InventoryManagementTest(unittest.TestCase):
         test_client_name = "test"
 
         add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_item(test_client_name, "00009")
+        add_or_update_item(test_client_name, "00009")
 
         db = ClientDb(test_client_name)
         with db.client() as client:
@@ -116,7 +116,7 @@ class InventoryManagementTest(unittest.TestCase):
         test_client_name = "test"
 
         add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_item(test_client_name, "00120")
+        add_or_update_item(test_client_name, "00120")
 
         db = ClientDb(test_client_name)
         with db.client() as client:
@@ -140,10 +140,10 @@ class InventoryManagementTest(unittest.TestCase):
         test_client_name = "test"
 
         add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_item(test_client_name, "00107")
-        add_item(test_client_name, "00111")
-        add_item(test_client_name, "00120")
-        add_item(test_client_name, "00127")
+        add_or_update_item(test_client_name, "00107")
+        add_or_update_item(test_client_name, "00111")
+        add_or_update_item(test_client_name, "00120")
+        add_or_update_item(test_client_name, "00127")
 
         db = ClientDb(test_client_name)
         with db.client() as client:
@@ -171,7 +171,7 @@ class InventoryManagementTest(unittest.TestCase):
         test_client_name = "test"
 
         add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_item(test_client_name, "00120")
+        add_or_update_item(test_client_name, "00120")
 
         db = ClientDb(test_client_name)
         with db.client() as client:
@@ -187,7 +187,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         add_client(test_client_name, "test@gmail.com", "+1234567890")
         nc_code = "00009"
-        add_item(test_client_name, nc_code)
+        add_or_update_item(test_client_name, nc_code)
         track_item(test_client_name, nc_code, False)
 
         db = ClientDb(test_client_name)

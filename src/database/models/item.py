@@ -10,7 +10,7 @@ class Item(Base):
     __tablename__ = "Item"
 
     id = Column(types.Integer, primary_key=True)
-    client_id = Column(types.String, ForeignKey("Client.id"))
+    client_id = Column(types.String, ForeignKey("Client.id"), nullable=True)
     nc_code = Column(types.String(80), nullable=False)
     brand_name = Column(types.String(80), nullable=True)
     total_available = Column(types.Integer, nullable=True)

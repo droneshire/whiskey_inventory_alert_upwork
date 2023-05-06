@@ -5,7 +5,7 @@ import typing as T
 import dotenv
 
 from database.connect import init_database
-from database.helpers import add_client, add_item
+from database.helpers import add_client, add_or_update_item
 from database.models.client import Client
 from util import log
 
@@ -71,7 +71,7 @@ def main() -> None:
     add_client(args.name, args.email, args.phone_number)
 
     if args.item_code:
-        add_item(args.name, args.item_code)
+        add_or_update_item(args.name, args.item_code)
 
 
 if __name__ == "__main__":

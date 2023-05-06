@@ -11,6 +11,7 @@ import pandas as pd
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
+from database.helpers import add_or_update_item
 from firebase.firebase_client import FirebaseClient
 from util import email, log, wait, web2_client
 from util.twilio_util import TwilioUtil
@@ -99,21 +100,20 @@ class InventoryMonitor:
         return time_since_last_update > self.time_between_inventory_checks
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
-        with ClientDb(client_name).client() as db:
+        # check and add item into db if not there already
+        with ClientDb(client_name).item(item[self.INVENTORY_CODE_KEY]) as db:
             if db is None:
-                return
+                add_or_update_item(client_name, item[self.INVENTORY_CODE_KEY])
 
-            for db_item in db.items:
-                if db_item.nc_code != item[self.INVENTORY_CODE_KEY]:
-                    continue
-
-                db_item.brand_name = item["Brand Name"]
-                db_item.total_available = int(item["Total Available"])
-                db_item.size = item["Size"]
-                db_item.cases_per_pallet = int(item["Cases Per Pallet"])
-                db_item.supplier = item["Supplier"]
-                db_item.supplier_allotment = int(item["Supplier Allotment"])
-                db_item.broker_name = item["Broker Name"]
+        # update item in db
+        with ClientDb(client_name).item(item[self.INVENTORY_CODE_KEY]) as db:
+            db.brand_name = item["Brand Name"]
+            db.total_available = int(item["Total Available"])
+            db.size = item["Size"]
+            db.cases_per_pallet = int(item["Cases Per Pallet"])
+            db.supplier = item["Supplier"]
+            db.supplier_allotment = int(item["Supplier Allotment"])
+            db.broker_name = item["Broker Name"]
 
     def _check_and_see_if_firebase_should_be_updated(self) -> None:
         if self.firebase_client is None:
@@ -130,7 +130,7 @@ class InventoryMonitor:
 
         if update_from_firebase:
             self.last_query_firebase_time = time.time()
-            self.firebase_client.update_from_firebase()
+            self.firebase_client.update_watchers()
 
         for id, client in self.clients.items():
             for item in client["items"]:
@@ -315,6 +315,10 @@ class InventoryMonitor:
             self.new_inventory = inventory
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
+
+        # iterate through all items in the new_inventory and add them to the database
+        for _, item in self.new_inventory.iterrows():
+            self._update_local_db_item("", item)
 
         self.last_inventory_update_time = time.time()
 
