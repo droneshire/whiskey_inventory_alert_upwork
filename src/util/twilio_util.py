@@ -16,6 +16,7 @@ class TwilioUtil:
         dry_run=False,
         verbose=False,
         time_between_sms: int = 1,
+        ignore_time_window: bool = False,
     ) -> None:
         self.dry_run = dry_run
         self.verbose = verbose
@@ -34,6 +35,7 @@ class TwilioUtil:
         self.end_time_minutes: int = 17 * 60 + 30
         self.timezone: T.Any = pytz.timezone("America/Los_Angeles")
         self.time_between_sms: int = time_between_sms
+        self.ignore_time_window: bool = ignore_time_window
 
     def _get_minutes_from_time(self, time: datetime.datetime) -> int:
         return time.hour * 60 + time.minute
@@ -75,7 +77,12 @@ class TwilioUtil:
     def check_sms_queue(self, now: datetime.datetime = datetime.datetime.now()) -> None:
         now.replace(tzinfo=pytz.utc).astimezone(tz=self.timezone)
         now_minutes = self._get_minutes_from_time(now)
-        if now_minutes >= self.start_time_minutes and now_minutes <= self.end_time_minutes:
+
+        is_within_window = (
+            now_minutes >= self.start_time_minutes and now_minutes <= self.end_time_minutes
+        )
+
+        if is_within_window or self.ignore_time_window:
             for message in self.message_queue:
                 self.send_sms(message[0], message[1])
                 time.sleep(self.time_between_sms)
