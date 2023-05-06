@@ -1,3 +1,6 @@
+import datetime
+import pytz
+import typing as T
 from twilio.rest import Client
 
 from util import log
@@ -19,6 +22,35 @@ class TwilioUtil:
         if verbose:
             log.print_bold("TwilioUtil initialized")
 
+        self.message_queue: T.List[str] = []
+        self.start_time_minutes: int = 9 * 60 + 30
+        self.end_time_minutes: int = 17 * 60 + 30
+        self.timezone: T.Any = pytz.timezone("America/Los_Angeles")
+
+    def _get_minutes_from_time(self, time: datetime.datetime) -> int:
+        return time.hour * 60 + time.minute
+
+    def update_send_window(
+        self, start_time: datetime.datetime, end_time: datetime.datetime, timezone: str
+    ) -> None:
+        self.start_time_minutes = self._get_minutes_from_time(start_time)
+        self.end_time_minutes = self._get_minutes_from_time(end_time)
+        self.timezone = pytz.timezone(timezone)
+        log.print_bright(
+            "Updated send window to: {} - {} ({})",
+            start_time.strftime("%H:%M"),
+            end_time.strftime("%H:%M"),
+            timezone,
+        )
+
+    def send_sms_if_in_window(
+        self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.now()
+    ) -> None:
+        self.message_queue.append((to_number, content))
+        if self.verbose:
+            log.print_normal(f"Added SMS to queue: {to_number} - {content}")
+        self.check_sms_queue(now)
+
     def send_sms(self, to_number: str, content: str) -> None:
         if self.dry_run:
             return
@@ -31,3 +63,14 @@ class TwilioUtil:
 
         if self.verbose:
             log.print_bold(f"Sent SMS: {message.sid} - {content}")
+
+    def check_sms_queue(self, now: datetime.datetime = datetime.datetime.now()) -> None:
+        now.replace(tzinfo=pytz.utc).astimezone(tz=self.timezone)
+        now_minutes = self._get_minutes_from_time(now)
+        if now_minutes >= self.start_time_minutes and now_minutes <= self.end_time_minutes:
+            for message in self.message_queue:
+                self.send_sms(message[0], message[1])
+            self.message_queue = []
+        else:
+            if self.verbose:
+                log.print_normal("Not in send window, not sending SMS")

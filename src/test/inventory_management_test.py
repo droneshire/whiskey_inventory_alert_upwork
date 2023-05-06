@@ -1,3 +1,4 @@
+import datetime
 import os
 import shutil
 import tempfile
@@ -19,10 +20,16 @@ from util.twilio_util import TwilioUtil
 
 class TwilioUtilStub(TwilioUtil):
     def __init__(self):
-        super().__init__("", "", "")
+        super().__init__("", "", "", verbose=True)
         self.num_sent = 0
         self.send_to = ""
         self.content = ""
+        self.now: datetime.datetime = datetime.datetime(2021, 1, 1, 12, 0, 0)
+
+    def send_sms_if_in_window(
+        self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.now()
+    ) -> None:
+        super().send_sms_if_in_window(to_number, content, self.now)
 
     def send_sms(self, to_number: str, content: str) -> None:
         log.print_normal(f"Sending SMS to {to_number} with content {content}")
@@ -203,6 +210,40 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
+
+    def test_send_window(self):
+        test_client_name = "test"
+
+        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        add_or_update_item(test_client_name, "00009")
+
+        db = ClientDb(test_client_name)
+        with db.client() as client:
+            client_schema = ClientSchema().dump(client)
+
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        # force the time to be outside the window
+        self.twilio_stub.now = datetime.datetime(2020, 1, 1, 0, 0, 0)
+        start_time = datetime.time(8, 0, 0)
+        end_time = datetime.time(22, 0, 0)
+        timezone = "America/Los_Angeles"
+        self.twilio_stub.update_send_window(start_time, end_time, timezone)
+
+        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+        self.assertEqual(len(self.twilio_stub.message_queue), 1)
+
+        self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12, 0, 0)
+        self.twilio_stub.check_sms_queue()
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+        self.assertEqual(len(self.twilio_stub.message_queue), 0)
 
 
 if __name__ == "__main__":

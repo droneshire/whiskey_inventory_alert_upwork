@@ -246,7 +246,7 @@ class InventoryMonitor:
             return
 
         if client["phone_number"] and client["phone_alerts"]:
-            self.twilio_util.send_sms(
+            self.twilio_util.send_sms_if_in_window(
                 client["phone_number"],
                 message,
             )
@@ -339,6 +339,7 @@ class InventoryMonitor:
         log.print_bold(f"{'─' * 80}")
 
         self._check_and_see_if_firebase_should_be_updated()
+        self.twilio_util.check_sms_queue()
 
     def run(self) -> None:
         self.update_inventory(self.download_url)
