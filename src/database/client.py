@@ -73,7 +73,7 @@ class ClientDb:
                     log.print_warn(f"Not deleting {name}, it's not in db")
                 return
 
-            db.query(Item).filter(Item.client_id == client.id).delete()
+            db.query(Item).filter(Item.clients.any(Client.id == client.id)).delete()
             db.query(Client).filter(Client.id == name).delete()
 
     @staticmethod
@@ -158,9 +158,9 @@ class ClientDb:
                     nc_code=nc_code,
                 )
                 log.print_ok_arrow(f"Created item [{nc_code}] for {client.id}")
-            else:
-                log.print_ok_arrow(f"Updated item [{nc_code}] for {client.id}")
-                item.client_id = client.id
+            elif client.id not in item.clients:
+                log.print_ok_arrow(f"Updated item [{nc_code}] with {client.id}")
+                item.clients.append(client.id)
 
             if brand_name is not None:
                 item.brand_name = brand_name

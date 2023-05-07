@@ -5,13 +5,13 @@ from sqlalchemy.schema import Column
 from sqlalchemy.sql import func
 
 from database.connect import Base
-
+from database.models.item_client import item_client_association_table
 
 class Client(Base):
     __tablename__ = "Client"
 
     id = Column(types.String(80), primary_key=True, nullable=False)
-    items = relationship("Item", backref="Client")
+    items = relationship("Item", secondary=item_client_association_table, back_populates="clients")
     email = Column(types.String(80), nullable=False)
     email_alerts = Column(types.Boolean, default=True)
     alert_time_range_start = Column(types.Integer, nullable=True)

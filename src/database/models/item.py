@@ -4,13 +4,14 @@ from sqlalchemy.schema import Column
 from sqlalchemy.sql import func
 
 from database.connect import Base
+from database.models.item_client import item_client_association_table
 
 
 class Item(Base):
     __tablename__ = "Item"
 
     id = Column(types.Integer, primary_key=True)
-    client_id = Column(types.String, ForeignKey("Client.id"), nullable=True)
+    clients = relationship("Client", secondary=item_client_association_table, back_populates="items")
     nc_code = Column(types.String(80), nullable=False)
     brand_name = Column(types.String(80), nullable=True)
     total_available = Column(types.Integer, nullable=True)
