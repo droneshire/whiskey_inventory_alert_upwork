@@ -24,7 +24,7 @@ class TwilioUtilStub(TwilioUtil):
         self.num_sent = 0
         self.send_to = ""
         self.content = ""
-        self.now: datetime.datetime = datetime.datetime(2021, 1, 1, 12, 0, 0)
+        self.now: datetime.datetime = datetime.datetime(2021, 1, 1, 12 + 8, 0, 0)
 
     def send_sms_if_in_window(
         self, to_number: str, content: str, now: datetime.datetime = datetime.datetime.utcnow()
@@ -105,8 +105,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_client(test_client_name, "test@gmail.com", "+1234567890")
         add_or_update_item(test_client_name, "00009")
 
-        db = ClientDb(test_client_name)
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -125,8 +124,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_client(test_client_name, "test@gmail.com", "+1234567890")
         add_or_update_item(test_client_name, "00120")
 
-        db = ClientDb(test_client_name)
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -139,7 +137,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             updates_sent = client.updates_sent
         self.assertEqual(updates_sent, 1)
 
@@ -152,8 +150,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, "00120")
         add_or_update_item(test_client_name, "00127")
 
-        db = ClientDb(test_client_name)
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -166,7 +163,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             updates_sent = client.updates_sent
 
         self.assertEqual(updates_sent, 4)
@@ -180,8 +177,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_client(test_client_name, "test@gmail.com", "+1234567890")
         add_or_update_item(test_client_name, "00120")
 
-        db = ClientDb(test_client_name)
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -197,8 +193,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, nc_code)
         track_item(test_client_name, nc_code, False)
 
-        db = ClientDb(test_client_name)
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -217,8 +212,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_client(test_client_name, "test@gmail.com", "+1234567890")
         add_or_update_item(test_client_name, "00009")
 
-        db = ClientDb(test_client_name)
-        with db.client() as client:
+        with ClientDb.client(test_client_name) as client:
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -226,7 +220,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        now = datetime.datetime(2020, 1, 1, 0, 0, 0)
+        now = datetime.datetime(2020, 1, 1, 12, 0, 0)
 
         # force the time to be outside the window
         start_time = 8 * 60
@@ -242,7 +236,7 @@ class InventoryManagementTest(unittest.TestCase):
         self.assertEqual(self.twilio_stub.num_sent, 0)
         self.assertEqual(len(self.twilio_stub.message_queue), 1)
 
-        self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12, 0, 0)
+        self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12 + 8, 0, 0)
         self.twilio_stub.check_sms_queue(self.twilio_stub.now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
