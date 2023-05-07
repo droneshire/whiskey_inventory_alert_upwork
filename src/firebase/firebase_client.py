@@ -97,18 +97,19 @@ class FirebaseClient:
 
         for change in changed_docs:
             doc_id = change.document.id
+            email = safe_get(
+                self.db_cache[doc_id], "preferences.notifications.email.email".split("."), ""
+            )
+            phone_number = safe_get(
+                self.db_cache[doc_id],
+                "preferences.notifications.sms.phoneNumber".split("."),
+                "",
+            )
+            if phone_number and not phone_number.startswith("+1"):
+                phone_number = "+1" + phone_number
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
-                email = safe_get(
-                    self.db_cache[doc_id], "preferences.notifications.email.email".split("."), ""
-                )
-                phone_number = safe_get(
-                    self.db_cache[doc_id],
-                    "preferences.notifications.sms.phoneNumber".split("."),
-                    "",
-                )
-                if phone_number and not phone_number.startswith("+1"):
-                    phone_number = "+1" + phone_number
+
                 add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")

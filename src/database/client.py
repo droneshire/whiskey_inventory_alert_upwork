@@ -18,15 +18,9 @@ DEFAULT_DB = os.environ.get("DEFAULT_DB", "client.db")
 class ClientDb:
     def __init__(self, name: str, db_str: str = DEFAULT_DB) -> None:
         self.id = name
-        self.items: T.List[Item] = []
-        self.db_str = db_str
 
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()
-            if client is None:
-                return
-            for item in client.items:
-                self.items.append(item)
 
     @staticmethod
     @contextmanager
