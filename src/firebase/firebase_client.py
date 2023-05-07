@@ -22,8 +22,7 @@ from database.models.client import ClientSchema
 from database.models.item import Item
 from firebase import defs
 from util import log
-from util.dict_util import (check_dict_keys_recursive,
-                            patch_missing_keys_recursive, safe_get)
+from util.dict_util import check_dict_keys_recursive, patch_missing_keys_recursive, safe_get
 
 
 class Changes(enum.Enum):
