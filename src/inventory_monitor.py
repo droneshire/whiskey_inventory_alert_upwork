@@ -161,6 +161,8 @@ class InventoryMonitor:
 
         items_to_update = []
 
+        self.twilio_util.set_ignore_time_window(not client["alert_range_enabled"])
+
         for item_schema in client["items"]:
             nc_code = item_schema["nc_code"]
 

@@ -106,6 +106,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -125,6 +126,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, "00120")
 
         with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -151,6 +153,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, "00127")
 
         with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -178,6 +181,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, "00120")
 
         with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -194,6 +198,7 @@ class InventoryManagementTest(unittest.TestCase):
         track_item(test_client_name, nc_code, False)
 
         with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -213,6 +218,7 @@ class InventoryManagementTest(unittest.TestCase):
         add_or_update_item(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -235,6 +241,43 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
         self.assertEqual(len(self.twilio_stub.message_queue), 1)
+
+        self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12 + 8, 0, 0)
+        self.twilio_stub.check_sms_queue(self.twilio_stub.now)
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+        self.assertEqual(len(self.twilio_stub.message_queue), 0)
+
+    def test_ignore_send_window(self):
+        test_client_name = "test"
+
+        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        add_or_update_item(test_client_name, "00009")
+
+        with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = False
+            client_schema = ClientSchema().dump(client)
+
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        now = datetime.datetime(2020, 1, 1, 12, 0, 0)
+
+        # force the time to be outside the window
+        start_time = 8 * 60
+        end_time = 22 * 60
+        timezone = "America/Los_Angeles"
+        self.twilio_stub.update_send_window(start_time, end_time, timezone)
+
+        self.twilio_stub.now = now
+
+        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+        self.assertEqual(len(self.twilio_stub.message_queue), 0)
 
         self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12 + 8, 0, 0)
         self.twilio_stub.check_sms_queue(self.twilio_stub.now)

@@ -168,10 +168,13 @@ class FirebaseClient:
                     db_client, "preferences.notifications.email.updatesEnabled".split("."), False
                 )
                 db.alert_time_zone = safe_get(
-                    db_client, "preferences.notifications.alertTimeZone.value".split("."), ""
+                    db_client, "preferences.notifications.sms.alertTimeZone.value".split("."), ""
+                )
+                db.alert_range_enabled: T.List[datetime.datetime] = safe_get(
+                    db_client, "preferences.notifications.sms.alertWindowEnabled".split("."), []
                 )
                 alert_range: T.List[datetime.datetime] = safe_get(
-                    db_client, "preferences.notifications.alertTimeRange".split("."), []
+                    db_client, "preferences.notifications.sms.alertTimeRange".split("."), []
                 )
                 if len(alert_range) == 2:
                     db.alert_time_range_start = alert_range[0]

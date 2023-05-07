@@ -41,6 +41,11 @@ class TwilioUtil:
     def _get_minutes_from_time(self, time: datetime.datetime) -> int:
         return time.hour * 60 + time.minute
 
+    def set_ignore_time_window(self, ignore: bool) -> None:
+        if self.ignore_time_window != ignore:
+            log.print_bright("Setting ignore_time_window to {}", ignore)
+        self.ignore_time_window = ignore
+
     def update_send_window(self, start_time: int, end_time: int, timezone: str) -> None:
         log.print_bright(
             "Updating send window to: {} - {} ({})",

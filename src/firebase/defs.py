@@ -23,11 +23,6 @@ class Email(T.TypedDict):
     updatesEnabled: bool
 
 
-class Sms(T.TypedDict):
-    phoneNumber: str
-    updatesEnabled: bool
-
-
 class TimeZone(T.TypedDict):
     abbrev: str
     altName: str
@@ -36,11 +31,17 @@ class TimeZone(T.TypedDict):
     value: str
 
 
+class Sms(T.TypedDict):
+    phoneNumber: str
+    updatesEnabled: bool
+    alertWindowEnabled: bool
+    alertTimeRange: T.List[str]
+    alertTimeZone: TimeZone
+
+
 class Notifications(T.TypedDict):
     email: Email
     sms: Sms
-    alertTimeRange: T.List[str]
-    alertTimeZone: TimeZone
 
 
 class Preferences(T.TypedDict):
@@ -57,14 +58,18 @@ NULL_CLIENT = Client(
     preferences=Preferences(
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),
-            sms=Sms(phoneNumber="", updatesEnabled=False),
-            alertTimeRange=[],
-            alertTimeZone=TimeZone(
-                abbrev="PDT",
-                altName="Pacific Daylight Time",
-                label="(GMT-07:00) Pacific Time",
-                offset=-7,
-                value="America/Los_Angeles",
+            sms=Sms(
+                phoneNumber="",
+                updatesEnabled=False,
+                alertWindowEnabled=True,
+                alertTimeRange=[],
+                alertTimeZone=TimeZone(
+                    abbrev="PDT",
+                    altName="Pacific Daylight Time",
+                    label="(GMT-07:00) Pacific Time",
+                    offset=-7,
+                    value="America/Los_Angeles",
+                ),
             ),
         )
     ),
