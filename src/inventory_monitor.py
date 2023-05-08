@@ -110,6 +110,10 @@ class InventoryMonitor:
             return True
 
         time_since_last_update = time.time() - self.last_inventory_update_time
+        time_till_next_update = get_pretty_seconds(
+            self.time_between_inventory_checks - time_since_last_update
+        )
+        log.print_normal(f"Time since last inventory update: {time_till_next_update}")
         return time_since_last_update > self.time_between_inventory_checks
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
@@ -358,10 +362,6 @@ class InventoryMonitor:
         if self.new_inventory is not None:
             self.last_inventory = self.new_inventory.copy()
 
-        log.format_bright(f"Updating inventory from {download_url}")
-
-        self.last_inventory_update_time = time.time()
-
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
@@ -384,6 +384,7 @@ class InventoryMonitor:
             shutil.copy(csv_file.name, self.csv_file)
 
         self._write_inventory_delta_file()
+        self.last_inventory_update_time = time.time()
 
         for _, item in self.new_inventory.iterrows():
             self._update_local_db_item("", item)
