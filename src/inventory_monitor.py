@@ -23,7 +23,7 @@ STOCK_EMOJI = "\U0001F37A"
 
 class InventoryMonitor:
     TIME_BETWEEN_INVENTORY_CHECKS = {
-        "prod": 60 * 2,
+        "prod": 60 * 5,
         "test": 30,
     }
     TIME_BETWEEN_FIREBASE_QUERIES = {
@@ -284,6 +284,7 @@ class InventoryMonitor:
                 to_addresses=[client["email"]],
                 subject="{STOCK_EMOJI} NC ABC Inventory Alert",
                 content=message,
+                verbose=True,
             )
 
     def _df_to_real_json(self, dataframe: pd.core.frame.DataFrame) -> T.Dict[str, T.Any]:
