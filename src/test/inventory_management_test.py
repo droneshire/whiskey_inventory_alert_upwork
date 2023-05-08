@@ -13,7 +13,7 @@ from database.connect import close_database, init_database, remove_database
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
-from util import log
+from util import log, email
 from util.twilio_util import TwilioUtil
 
 
@@ -31,7 +31,7 @@ class TwilioUtilStub(TwilioUtil):
         super().send_sms_if_in_window(to_number, content, self.now)
 
     def send_sms(self, to_number: str, content: str) -> None:
-        log.print_normal(f"Sending SMS to {to_number} with content {content}")
+        log.print_normal(f"Sending SMS to {to_number} with content:\n{content}")
         self.num_sent += 1
         self.send_to = to_number
         self.content = content
@@ -57,6 +57,9 @@ class InventoryManagementTest(unittest.TestCase):
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
 
+        self.email: email.Email = email.Email(
+            address="test@gmail.com", password="test", quiet=False
+        )
         dotenv.load_dotenv(".env")
 
         init_database(self.test_dir, DEFAULT_DB, Client, True)
@@ -77,7 +80,7 @@ class InventoryManagementTest(unittest.TestCase):
             download_url="",
             download_key="",
             twilio_util=self.twilio_stub,
-            admin_email=None,
+            admin_email=self.email,
             inventory_csv_file=self.temp_csv_file.name,
             inventory_diff_file=self.temp_diff_file.name,
             time_between_inventory_checks=5,
