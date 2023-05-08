@@ -145,7 +145,7 @@ class InventoryMonitor:
 
         for id, client in self.clients.items():
             for item in client["items"]:
-                self.firebase_client.check_and_maybe_update_to_firebase(id, item["nc_code"])
+                self.firebase_client.check_and_maybe_update_to_firebase(id, item["id"])
 
         self.firebase_client.check_and_maybe_handle_firebase_db_updates()
 
@@ -295,13 +295,15 @@ class InventoryMonitor:
         if not diff:
             return
         data_json = {}
-        diff_json = diff.to_json(indent=4, sort_keys=True)
+        diff_json = diff.to_json(indent=4, sort_keys=True, ensure_ascii=True)
 
         make_sure_path_exists(self.inventory_change_file)
 
         if os.path.exists(self.inventory_change_file):
             with open(self.inventory_change_file, "r") as infile:
-                data_json = json.loads(infile.read())
+                data = infile.read()
+                if data:
+                    data_json = json.loads(data)
 
         with open(self.inventory_change_file, "w") as outfile:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d--%H:%M:%S")

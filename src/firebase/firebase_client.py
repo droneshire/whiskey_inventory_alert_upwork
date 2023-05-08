@@ -108,10 +108,10 @@ class FirebaseClient:
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
-                add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")
-                add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.REMOVED.name:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
@@ -146,6 +146,8 @@ class FirebaseClient:
             ClientDb.add_track_item(
                 client, nc_code, info.get("action", "") == defs.Actions.TRACKING.value
             )
+
+            ClientDb.add_item_to_client(client, nc_code)
 
             with ClientDb.item(nc_code) as item:
                 if item and item.total_available and item.brand_name:
@@ -182,14 +184,14 @@ class FirebaseClient:
                     db.alert_time_range_start = alert_range[0]
                     db.alert_time_range_end = alert_range[1]
 
-                items = [i.id for i in db.items]
+                nc_codes = [i.id for i in db.items]
 
             for tracking_item in db.tracked_items:
                 if tracking_item.nc_code not in db_client["inventory"]["items"]:
                     log.print_warn(f"Deleting tracking {nc_code} from client {client} in database")
                     ClientDb.delete_track_item(client, tracking_item.nc_code)
 
-            for nc_code in items:
+            for nc_code in nc_codes:
                 if nc_code not in db_client["inventory"]["items"]:
                     log.print_warn(f"Deleting {nc_code} from client {client} in database")
                     db.items.remove(nc_code)

@@ -206,6 +206,9 @@ class ClientDb:
             item = db.query(Item).filter(Item.id == nc_code).first()
             if client is None or item is None:
                 return
+            if item in client.items:
+                return
+            log.print_ok_arrow(f"Added {nc_code} to {client.id}")
             client.items.append(item)
 
     @staticmethod
