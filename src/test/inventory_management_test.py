@@ -52,6 +52,7 @@ class InventoryManagementTest(unittest.TestCase):
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     temp_csv_file: T.Any = None
+    temp_diff_file: T.Any = None
 
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
@@ -69,6 +70,7 @@ class InventoryManagementTest(unittest.TestCase):
         assert os.path.isfile(self.after_csv_many), f"Could not find {self.after_csv_many}"
 
         self.temp_csv_file = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_diff_file = tempfile.NamedTemporaryFile(delete=False)
         shutil.copyfile(self.before_csv, self.temp_csv_file.name)
 
         self.monitor = InventoryMonitor(
@@ -77,6 +79,7 @@ class InventoryManagementTest(unittest.TestCase):
             twilio_util=self.twilio_stub,
             admin_email=None,
             inventory_csv_file=self.temp_csv_file.name,
+            inventory_diff_file=self.temp_diff_file.name,
             time_between_inventory_checks=5,
             use_local_db=True,
             log_dir=self.test_dir,
@@ -91,6 +94,9 @@ class InventoryManagementTest(unittest.TestCase):
 
         if self.temp_csv_file and os.path.isfile(self.temp_csv_file.name):
             os.remove(self.temp_csv_file.name)
+
+        if self.temp_diff_file and os.path.isfile(self.temp_diff_file.name):
+            os.remove(self.temp_diff_file.name)
 
         close_database()
         remove_database(self.test_dir, DEFAULT_DB)

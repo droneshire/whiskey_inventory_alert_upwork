@@ -43,6 +43,7 @@ class InventoryMonitor:
         credentials_file: str,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
+        inventory_diff_file: str = "",
         time_between_inventory_checks: T.Optional[int] = None,
         dry_run: bool = False,
         verbose: bool = False,
@@ -52,7 +53,9 @@ class InventoryMonitor:
         self.twilio_util: TwilioUtil = twilio_util
         self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
-        self.inventory_change_file = os.path.join(log_dir, "inventory_changes.json")
+        self.inventory_change_file = inventory_diff_file or os.path.join(
+            log_dir, "inventory_changes.json"
+        )
         self.use_local_db = use_local_db
         self.dry_run = dry_run
         self.verbose = verbose
