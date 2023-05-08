@@ -12,7 +12,7 @@ class TrackingItem(Base):
     __tablename__ = "TrackingItem"
 
     id = Column(types.Integer, primary_key=True)
-    client_id = Column(types.String, ForeignKey("Client.id"))
+    client_id = Column(types.String(80), ForeignKey("Client.id"))
     nc_code = Column(types.String(80), nullable=False)
 
 
@@ -54,7 +54,6 @@ class Client(Base):
 
 class ClientSchema(Schema):  # type: ignore
     id = fields.Str()
-    items = fields.List(fields.Nested("ItemSchema"))
     email = fields.Str()
     email_alerts = fields.Boolean()
     alert_time_range_start = fields.Int()
@@ -71,6 +70,8 @@ class ClientSchema(Schema):  # type: ignore
     next_billing_amount = fields.Float()
     has_paid = fields.Boolean()
     created_at = fields.DateTime()
+    items = fields.List(fields.Nested("ItemSchema"))
+    tracked_items = fields.List(fields.Nested("TrackingItemSchema"))
 
     @post_load
     def make_object(self, data, **kwargs):

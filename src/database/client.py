@@ -76,11 +76,19 @@ class ClientDb:
             client = db.query(Client).filter(Client.id == name).first()
             if client is None:
                 return
-            tracking_item = db.query(TrackingItem).filter(TrackingItem.client_id == name).first()
+            tracking_item = (
+                db.query(TrackingItem)
+                .filter(TrackingItem.client_id == name)
+                .filter(TrackingItem.nc_code == nc_code)
+                .first()
+            )
             if tracking_item is None and do_track:
-                TrackingItem(client_id=client.id, nc_code=nc_code)
+                tracking_item = TrackingItem(client_id=client.id, nc_code=nc_code)
+                db.add(tracking_item)
             elif tracking_item is not None and not do_track:
-                tracking_item.delete()
+                db.query(TrackingItem).filter(TrackingItem.client_id == name).filter(
+                    TrackingItem.nc_code == nc_code
+                ).delete()
 
     @staticmethod
     def delete_track_item(name: str, nc_code: str) -> None:

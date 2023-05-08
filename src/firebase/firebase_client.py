@@ -143,7 +143,6 @@ class FirebaseClient:
             phone_number = "+1" + phone_number
 
         for nc_code, info in safe_get(db_client, "inventory.items".split(".")).items():
-            ClientDb.add_or_update_item(nc_code)
             ClientDb.add_track_item(
                 client, nc_code, info.get("action", "") == defs.Actions.TRACKING.value
             )

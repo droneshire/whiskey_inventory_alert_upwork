@@ -171,9 +171,9 @@ class InventoryMonitor:
             log.print_ok_arrow(f"Checking {nc_code}")
 
             items_tracking = [t["nc_code"] for t in client["tracked_items"]]
-            if not items_tracking:
+            if nc_code not in items_tracking:
                 log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
-                continue
+                return
 
             item: pd.core.frame.DataFrame = self._get_item_from_inventory(
                 item_schema, self.new_inventory
@@ -261,10 +261,6 @@ class InventoryMonitor:
             log.print_warn("Not sending alert, client has not paid")
             return
 
-        if not item_schema or not item_schema["is_tracking"]:
-            log.print_normal_arrow("Not sending alert, item is not being tracked")
-            return
-
         if client["phone_number"] and client["phone_alerts"]:
             self.twilio_util.send_sms_if_in_window(
                 client["phone_number"],
@@ -320,7 +316,7 @@ class InventoryMonitor:
 
         inventory_codes = dataframe[self.INVENTORY_CODE_KEY]
 
-        nc_code = item["nc_code"]
+        nc_code = item["id"]
 
         matches: pd.core.frame.DataFrame = dataframe[inventory_codes == nc_code]
 

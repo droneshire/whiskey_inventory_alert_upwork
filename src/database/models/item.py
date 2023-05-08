@@ -24,7 +24,7 @@ class Item(Base):
 
 
 class ItemSchema(Schema):  # type: ignore
-    id = fields.Int()
+    id = fields.Str()
     brand_name = fields.Str()
     total_available = fields.Int()
     size = fields.Str()
