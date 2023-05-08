@@ -221,8 +221,7 @@ class InventoryMonitor:
             )
 
             if previous_item is not None and previous_available != 0:
-                if self.verbose:
-                    log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
+                log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
                 continue
 
             inventory_threshold = client["threshold_inventory"]
@@ -256,12 +255,12 @@ class InventoryMonitor:
 
         log.print_ok(message)
 
-        if self.dry_run:
-            log.print_normal_arrow("Dry run, not sending SMS")
-            return
-
         if not client["has_paid"]:
             log.print_warn("Not sending alert, client has not paid")
+            return
+
+        if self.dry_run:
+            log.print_normal_arrow("Dry run, not sending SMS")
             return
 
         if client["phone_number"] and client["phone_alerts"]:
