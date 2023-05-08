@@ -10,5 +10,5 @@ def make_sure_path_exists(path: str) -> None:
         section = os.path.join(root, directory)
         root = section
 
-        if not os.path.isdir(section):
+        if not os.path.isdir(section) and not os.path.isfile(section):
             os.mkdir(section)

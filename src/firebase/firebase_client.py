@@ -17,7 +17,6 @@ from google.cloud.firestore_v1.watch import DocumentChange, Watch
 from sqlalchemy.sql import func
 
 from database.client import ClientDb
-from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import ClientSchema
 from database.models.item import Item
 from firebase import defs
@@ -109,10 +108,10 @@ class FirebaseClient:
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
-                add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")
-                add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_number)
             elif change.type.name == Changes.REMOVED.name:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
@@ -144,13 +143,14 @@ class FirebaseClient:
             phone_number = "+1" + phone_number
 
         for nc_code, info in safe_get(db_client, "inventory.items".split(".")).items():
-            if info.get("action", "") == defs.Actions.TRACKING.value:
-                add_or_update_item(client, nc_code)
-            elif info.get("action", "") == defs.Actions.NOT_TRACKING.value:
-                track_item(client, nc_code, False)
+            ClientDb.add_track_item(
+                client, nc_code, info.get("action", "") == defs.Actions.TRACKING.value
+            )
 
-            with ClientDb(client).item(nc_code) as item:
-                if item and item.nc_code == nc_code and item.brand_name:
+            ClientDb.add_item_to_client(client, nc_code)
+
+            with ClientDb.item(nc_code) as item:
+                if item and item.total_available and item.brand_name:
                     db_client["inventory"]["items"][nc_code]["name"] = item.brand_name
                     db_client["inventory"]["items"][nc_code]["available"] = item.total_available
 
@@ -184,13 +184,17 @@ class FirebaseClient:
                     db.alert_time_range_start = alert_range[0]
                     db.alert_time_range_end = alert_range[1]
 
-                items = [i.nc_code for i in db.items]
+                nc_codes = [i.id for i in db.items]
 
-        for nc_code in items:
-            with ClientDb(client).item(nc_code) as db_item:
-                if db_item is not None and nc_code not in db_client["inventory"]["items"]:
-                    log.print_warn(f"Deleting item {nc_code} from client {client} in database")
-                    db_item.client_id = None
+            for tracking_item in db.tracked_items:
+                if tracking_item.nc_code not in db_client["inventory"]["items"]:
+                    log.print_warn(f"Deleting tracking {nc_code} from client {client} in database")
+                    ClientDb.delete_track_item(client, tracking_item.nc_code)
+
+            for nc_code in nc_codes:
+                if nc_code not in db_client["inventory"]["items"]:
+                    log.print_warn(f"Deleting {nc_code} from client {client} in database")
+                    db.items.remove(nc_code)
 
         self._maybe_upload_db_cache_to_firestore(client, old_db_client, db_client)
 
@@ -228,8 +232,8 @@ class FirebaseClient:
         db_client = copy.deepcopy(self.db_cache[client])
 
         for nc_code, info in db_client["inventory"]["items"].items():
-            with ClientDb(client).item(nc_code) as item:
-                if item and item.nc_code == nc_code and item.brand_name and item.total_available:
+            with ClientDb.item(nc_code) as item:
+                if item and item.id == nc_code and item.brand_name and item.total_available:
                     db_client["inventory"]["items"][nc_code]["name"] = item.brand_name
                     db_client["inventory"]["items"][nc_code]["available"] = item.total_available
 

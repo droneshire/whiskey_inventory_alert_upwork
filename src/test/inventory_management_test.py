@@ -10,11 +10,10 @@ import dotenv
 
 from database.client import DEFAULT_DB, ClientDb
 from database.connect import close_database, init_database, remove_database
-from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
-from util import log
+from util import log, email
 from util.twilio_util import TwilioUtil
 
 
@@ -32,7 +31,7 @@ class TwilioUtilStub(TwilioUtil):
         super().send_sms_if_in_window(to_number, content, self.now)
 
     def send_sms(self, to_number: str, content: str) -> None:
-        log.print_normal(f"Sending SMS to {to_number} with content {content}")
+        log.print_normal(f"Sending SMS to {to_number} with content:\n{content}")
         self.num_sent += 1
         self.send_to = to_number
         self.content = content
@@ -53,10 +52,14 @@ class InventoryManagementTest(unittest.TestCase):
     twilio_stub: TwilioUtilStub = None
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     temp_csv_file: T.Any = None
+    temp_diff_file: T.Any = None
 
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
 
+        self.email: email.Email = email.Email(
+            address="test@gmail.com", password="test", quiet=False
+        )
         dotenv.load_dotenv(".env")
 
         init_database(self.test_dir, DEFAULT_DB, Client, True)
@@ -70,14 +73,16 @@ class InventoryManagementTest(unittest.TestCase):
         assert os.path.isfile(self.after_csv_many), f"Could not find {self.after_csv_many}"
 
         self.temp_csv_file = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_diff_file = tempfile.NamedTemporaryFile(delete=False)
         shutil.copyfile(self.before_csv, self.temp_csv_file.name)
 
         self.monitor = InventoryMonitor(
             download_url="",
             download_key="",
             twilio_util=self.twilio_stub,
-            admin_email=None,
+            admin_email=self.email,
             inventory_csv_file=self.temp_csv_file.name,
+            inventory_diff_file=self.temp_diff_file.name,
             time_between_inventory_checks=5,
             use_local_db=True,
             log_dir=self.test_dir,
@@ -93,6 +98,9 @@ class InventoryManagementTest(unittest.TestCase):
         if self.temp_csv_file and os.path.isfile(self.temp_csv_file.name):
             os.remove(self.temp_csv_file.name)
 
+        if self.temp_diff_file and os.path.isfile(self.temp_diff_file.name):
+            os.remove(self.temp_diff_file.name)
+
         close_database()
         remove_database(self.test_dir, DEFAULT_DB)
 
@@ -102,8 +110,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_out_of_stock_to_in_stock(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00009")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -120,11 +128,33 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
+    def test_no_send_if_no_previous_inventory_file(self):
+        test_client_name = "test"
+
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
+
+        with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
+            client.has_paid = True
+            client_schema = ClientSchema().dump(client)
+
+        self.monitor.skip_alerts = True
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
     def test_unlisted_to_in_stock(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00120")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -148,11 +178,11 @@ class InventoryManagementTest(unittest.TestCase):
     def test_many_come_into_stock(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00107")
-        add_or_update_item(test_client_name, "00111")
-        add_or_update_item(test_client_name, "00120")
-        add_or_update_item(test_client_name, "00127")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00107")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00111")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00127")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -180,8 +210,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_new_and_last_inventory_check(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00120")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -196,10 +226,12 @@ class InventoryManagementTest(unittest.TestCase):
     def test_no_tracking_items_are_not_sent(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
         nc_code = "00009"
-        add_or_update_item(test_client_name, nc_code)
-        track_item(test_client_name, nc_code, False)
+        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
+        ClientDb.add_track_item(test_client_name, nc_code, False)
+        nc_code = "00111"
+        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -214,13 +246,13 @@ class InventoryManagementTest(unittest.TestCase):
         df = self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
-        self.assertEqual(self.twilio_stub.num_sent, 0)
+        self.assertEqual(self.twilio_stub.num_sent, 1)
 
     def test_send_window(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00009")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -257,8 +289,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_ignore_send_window(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00009")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = False
@@ -295,10 +327,10 @@ class InventoryManagementTest(unittest.TestCase):
     def test_client_not_paid_does_not_sent(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
         nc_code = "00009"
-        add_or_update_item(test_client_name, nc_code)
-        track_item(test_client_name, nc_code, False)
+        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
+        ClientDb.add_track_item(test_client_name, nc_code, False)
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True

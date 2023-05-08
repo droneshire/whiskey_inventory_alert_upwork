@@ -6,7 +6,7 @@ import dotenv
 
 from database.client import DEFAULT_DB
 from database.connect import init_database
-from database.helpers import add_client, add_or_update_item
+from database.client import ClientDb
 from database.models.client import Client
 from util import log
 
@@ -69,10 +69,10 @@ def main() -> None:
     database_name = DEFAULT_DB
     init_database(args.log_dir, database_name, Client)
 
-    add_client(args.name, args.email, args.phone_number)
+    ClientDb.add_client(args.name, args.email, args.phone_number)
 
     if args.item_code:
-        add_or_update_item(args.name, args.item_code)
+        ClientDb.add_item_to_client_and_track(args.name, args.item_code)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,6 @@ import typing as T
 import pandas as pd
 
 from database.client import ClientDb
-from database.helpers import add_or_update_item
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from firebase.firebase_client import FirebaseClient
@@ -24,7 +23,7 @@ STOCK_EMOJI = "\U0001F37A"
 
 class InventoryMonitor:
     TIME_BETWEEN_INVENTORY_CHECKS = {
-        "prod": 60 * 2,
+        "prod": 60 * 5,
         "test": 30,
     }
     TIME_BETWEEN_FIREBASE_QUERIES = {
@@ -44,6 +43,7 @@ class InventoryMonitor:
         credentials_file: str,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
+        inventory_diff_file: str = "",
         time_between_inventory_checks: T.Optional[int] = None,
         dry_run: bool = False,
         verbose: bool = False,
@@ -53,7 +53,9 @@ class InventoryMonitor:
         self.twilio_util: TwilioUtil = twilio_util
         self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
-        self.inventory_change_file = os.path.join(log_dir, "inventory_changes.json")
+        self.inventory_change_file = inventory_diff_file or os.path.join(
+            log_dir, "inventory_changes.json"
+        )
         self.use_local_db = use_local_db
         self.dry_run = dry_run
         self.verbose = verbose
@@ -69,6 +71,8 @@ class InventoryMonitor:
 
         self.last_inventory: T.Optional[pd.core.frame.DataFrame] = None
         self.new_inventory: T.Optional[pd.core.frame.DataFrame] = None
+
+        self.skip_alerts = False
 
         self.web = web2_client.Web2Client()
 
@@ -89,6 +93,10 @@ class InventoryMonitor:
             self.new_inventory = self._clean_inventory(csv_file)
             self.last_inventory = self.new_inventory.copy()
 
+        if self.new_inventory is None:
+            log.format_fail_arrow("Inventory doesn't exist, skipping alerts")
+            self.skip_alerts = True
+
     def _update_cache_from_local_db(self) -> None:
         client_names = ClientDb.get_client_names()
         log.print_ok(f"Found {len(client_names)} clients in local database")
@@ -106,19 +114,16 @@ class InventoryMonitor:
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
         # check and add item into db if not there already
-        with ClientDb(client_name).item(item[self.INVENTORY_CODE_KEY]) as db:
-            if db is None:
-                add_or_update_item(client_name, item[self.INVENTORY_CODE_KEY])
-
-        # update item in db
-        with ClientDb(client_name).item(item[self.INVENTORY_CODE_KEY]) as db:
-            db.brand_name = item["Brand Name"]
-            db.total_available = int(item["Total Available"])
-            db.size = item["Size"]
-            db.cases_per_pallet = int(item["Cases Per Pallet"])
-            db.supplier = item["Supplier"]
-            db.supplier_allotment = int(item["Supplier Allotment"])
-            db.broker_name = item["Broker Name"]
+        ClientDb.add_or_update_item(
+            item[self.INVENTORY_CODE_KEY],
+            brand_name=item["Brand Name"],
+            total_available=int(item["Total Available"]),
+            size=item["Size"],
+            cases_per_pallet=int(item["Cases Per Pallet"]),
+            supplier=item["Supplier"],
+            supplier_allotment=int(item["Supplier Allotment"]),
+            broker_name=item["Broker Name"],
+        )
 
     def _check_and_see_if_firebase_should_be_updated(self) -> None:
         if self.firebase_client is None:
@@ -146,7 +151,7 @@ class InventoryMonitor:
 
         for id, client in self.clients.items():
             for item in client["items"]:
-                self.firebase_client.check_and_maybe_update_to_firebase(id, item["nc_code"])
+                self.firebase_client.check_and_maybe_update_to_firebase(id, item["id"])
 
         self.firebase_client.check_and_maybe_handle_firebase_db_updates()
 
@@ -167,14 +172,15 @@ class InventoryMonitor:
         self.twilio_util.set_ignore_time_window(not client["alert_range_enabled"])
 
         for item_schema in client["items"]:
-            nc_code = item_schema["nc_code"]
+            nc_code = item_schema["id"]
 
             if nc_code is None:
                 continue
 
             log.print_ok_arrow(f"Checking {nc_code}")
 
-            if not item_schema["is_tracking"]:
+            items_tracking = [t["nc_code"] for t in client["tracked_items"]]
+            if nc_code not in items_tracking:
                 log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
                 continue
 
@@ -221,8 +227,7 @@ class InventoryMonitor:
             )
 
             if previous_item is not None and previous_available != 0:
-                if self.verbose:
-                    log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
+                log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
                 continue
 
             inventory_threshold = client["threshold_inventory"]
@@ -232,6 +237,9 @@ class InventoryMonitor:
                     log.print_normal_arrow(
                         f"{nc_code} is below inventory threshold of {inventory_threshold}"
                     )
+                continue
+
+            if self.skip_alerts:
                 continue
 
             items_to_update.append((nc_code, brand_name, item["Total Available"]))
@@ -256,16 +264,12 @@ class InventoryMonitor:
 
         log.print_ok(message)
 
-        if self.dry_run:
-            log.print_normal_arrow("Dry run, not sending SMS")
-            return
-
         if not client["has_paid"]:
             log.print_warn("Not sending alert, client has not paid")
             return
 
-        if not item_schema or not item_schema["is_tracking"]:
-            log.print_normal_arrow("Not sending alert, item is not being tracked")
+        if self.dry_run:
+            log.print_normal_arrow("Dry run, not sending SMS")
             return
 
         if client["phone_number"] and client["phone_alerts"]:
@@ -280,6 +284,7 @@ class InventoryMonitor:
                 to_addresses=[client["email"]],
                 subject="{STOCK_EMOJI} NC ABC Inventory Alert",
                 content=message,
+                verbose=True,
             )
 
     def _df_to_real_json(self, dataframe: pd.core.frame.DataFrame) -> T.Dict[str, T.Any]:
@@ -299,13 +304,15 @@ class InventoryMonitor:
         if not diff:
             return
         data_json = {}
-        diff_json = diff.to_json(indent=4, sort_keys=True)
+        diff_json = diff.to_json(indent=4, sort_keys=True, ensure_ascii=True)
 
         make_sure_path_exists(self.inventory_change_file)
 
         if os.path.exists(self.inventory_change_file):
             with open(self.inventory_change_file, "r") as infile:
-                data_json = json.loads(infile.read())
+                data = infile.read()
+                if data:
+                    data_json = json.loads(data)
 
         with open(self.inventory_change_file, "w") as outfile:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d--%H:%M:%S")
@@ -323,7 +330,7 @@ class InventoryMonitor:
 
         inventory_codes = dataframe[self.INVENTORY_CODE_KEY]
 
-        nc_code = item["nc_code"]
+        nc_code = item["id"]
 
         matches: pd.core.frame.DataFrame = dataframe[inventory_codes == nc_code]
 
@@ -353,6 +360,8 @@ class InventoryMonitor:
 
         log.format_bright(f"Updating inventory from {download_url}")
 
+        self.last_inventory_update_time = time.time()
+
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
@@ -378,9 +387,16 @@ class InventoryMonitor:
         for _, item in self.new_inventory.iterrows():
             self._update_local_db_item("", item)
 
-        self.last_inventory_update_time = time.time()
-
         return self.new_inventory
+
+    def _update_sms_time_window(self, name: str) -> None:
+        with ClientDb.client(name) as db:
+            if db is None:
+                return
+            if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
+                self.twilio_util.update_send_window(
+                    db.alert_time_range_start, db.alert_time_range_end, db.alert_time_zone
+                )
 
     def _check_inventory(self) -> None:
         self._update_cache_from_local_db()
@@ -393,18 +409,13 @@ class InventoryMonitor:
             log.print_bold(f"{'─' * 80}")
             log.print_bold(f"Checking inventory for {name}...")
             self.check_client_inventory(client)
-            with ClientDb.client(name) as db:
-                if db is None:
-                    break
-                if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
-                    self.twilio_util.update_send_window(
-                        db.alert_time_range_start, db.alert_time_range_end, db.alert_time_zone
-                    )
+            self._update_sms_time_window(name)
 
         log.print_bold(f"{'─' * 80}")
 
         self._check_and_see_if_firebase_should_be_updated()
         self.twilio_util.check_sms_queue()
+        self.skip_alerts = False
 
     def run(self) -> None:
         self.update_inventory(self.download_url)
