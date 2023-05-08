@@ -176,6 +176,10 @@ class FirebaseClient:
                 alert_range: T.List[datetime.datetime] = safe_get(
                     db_client, "preferences.notifications.sms.alertTimeRange".split("."), []
                 )
+                db.has_paid = safe_get(db_client, "accounting.hasPaid".split("."), False)
+                db.next_billing_amount = safe_get(
+                    db_client, "accounting.nextBillingAmount".split("."), 0.0
+                )
                 if len(alert_range) == 2:
                     db.alert_time_range_start = alert_range[0]
                     db.alert_time_range_end = alert_range[1]

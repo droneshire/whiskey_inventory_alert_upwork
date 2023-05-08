@@ -48,15 +48,29 @@ class Preferences(T.TypedDict):
     notifications: Notifications
 
 
+class Accounting(T.TypedDict):
+    plan: str
+    nextBillingDate: str
+    nextBillingAmount: float
+    hasPaid: bool
+
+
 class Client(T.TypedDict):
     inventory: Inventory
     preferences: Preferences
+    accounting: Accounting
 
 
 NULL_CLIENT = Client(
     inventory=Inventory(items=[]),
     preferences=Preferences(
         notifications=Notifications(
+            accounting=Accounting(
+                plan="",
+                nextBillingDate="",
+                nextBillingAmount=0.0,
+                hasPaid=False,
+            ),
             email=Email(email="", updatesEnabled=False),
             sms=Sms(
                 phoneNumber="",

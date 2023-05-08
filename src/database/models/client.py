@@ -23,6 +23,10 @@ class Client(Base):
     threshold_inventory = Column(types.Integer, nullable=True, default=1)
     last_updated = Column(types.DateTime(timezone=True), nullable=True)
     updates_sent = Column(types.Integer, nullable=True, default=0)
+    plan = Column(types.String(80), nullable=True)
+    next_billing_date = Column(types.DateTime(timezone=True), nullable=True)
+    next_billing_amount = Column(types.Float, default=0.0)
+    has_paid = Column(types.Boolean, default=False)
     created_at = Column(types.DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
@@ -43,6 +47,10 @@ class ClientSchema(Schema):  # type: ignore
     threshold_inventory = fields.Int()
     last_updated = fields.DateTime()
     updates_sent = fields.Int()
+    plan = fields.Str()
+    next_billing_date = fields.DateTime()
+    next_billing_amount = fields.Float()
+    has_paid = fields.Boolean()
     created_at = fields.DateTime()
 
     @post_load
