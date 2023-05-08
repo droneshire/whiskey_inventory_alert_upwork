@@ -171,7 +171,7 @@ class FirebaseClient:
                     db_client, "preferences.notifications.sms.alertTimeZone.value".split("."), ""
                 )
                 db.alert_range_enabled: T.List[datetime.datetime] = safe_get(
-                    db_client, "preferences.notifications.sms.alertWindowEnabled".split("."), []
+                    db_client, "preferences.notifications.sms.alertWindowEnabled".split("."), False
                 )
                 alert_range: T.List[datetime.datetime] = safe_get(
                     db_client, "preferences.notifications.sms.alertTimeRange".split("."), []

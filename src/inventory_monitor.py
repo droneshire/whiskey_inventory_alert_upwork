@@ -1,4 +1,5 @@
 import datetime
+import deepdiff
 import json
 import os
 import shutil
@@ -14,6 +15,7 @@ from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from firebase.firebase_client import FirebaseClient
 from util import email, log, wait, web2_client
+from util.file_util import make_sure_path_exists
 from util.format import get_pretty_seconds
 from util.twilio_util import TwilioUtil
 
@@ -51,6 +53,7 @@ class InventoryMonitor:
         self.twilio_util: TwilioUtil = twilio_util
         self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
+        self.inventory_change_file = os.path.join(log_dir, "inventory_changes.json")
         self.use_local_db = use_local_db
         self.dry_run = dry_run
         self.verbose = verbose
@@ -279,6 +282,38 @@ class InventoryMonitor:
                 content=message,
             )
 
+    def _df_to_real_json(self, dataframe: pd.core.frame.DataFrame) -> T.Dict[str, T.Any]:
+        if dataframe is None:
+            return {}
+        df_json = json.loads(dataframe.to_json(orient="values"))
+        new_json = {}
+        for item in df_json:
+            new_json[item[0]] = item[1:]
+        return new_json
+
+    def _write_inventory_delta_file(self) -> None:
+        new_json = self._df_to_real_json(self.new_inventory)
+        last_json = self._df_to_real_json(self.last_inventory)
+
+        diff = deepdiff.DeepDiff(last_json, new_json, ignore_order=True)
+        if not diff:
+            return
+        data_json = {}
+        diff_json = diff.to_json(indent=4, sort_keys=True)
+
+        make_sure_path_exists(self.inventory_change_file)
+
+        if os.path.exists(self.inventory_change_file):
+            with open(self.inventory_change_file, "r") as infile:
+                data_json = json.loads(infile.read())
+
+        with open(self.inventory_change_file, "w") as outfile:
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d--%H:%M:%S")
+            data_json[timestamp] = json.loads(diff_json)
+            json.dump(data_json, outfile, indent=4, sort_keys=True)
+
+        log.print_normal(f"Changes in inventory:\n{diff_json}")
+
     def _get_item_from_inventory(
         self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
     ) -> T.Optional[pd.core.frame.DataFrame]:
@@ -301,7 +336,7 @@ class InventoryMonitor:
     def _clean_inventory(self, csv_file: str) -> pd.core.frame.DataFrame:
         try:
             dataframe = pd.read_csv(csv_file)
-        except pd.errors.EmptyDataError:
+        except:
             log.print_fail("Empty inventory file")
             return None
 
@@ -338,7 +373,8 @@ class InventoryMonitor:
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
 
-        # iterate through all items in the new_inventory and add them to the database
+        self._write_inventory_delta_file()
+
         for _, item in self.new_inventory.iterrows():
             self._update_local_db_item("", item)
 

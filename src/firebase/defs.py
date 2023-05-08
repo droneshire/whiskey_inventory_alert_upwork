@@ -62,15 +62,15 @@ class Client(T.TypedDict):
 
 
 NULL_CLIENT = Client(
+    accounting=Accounting(
+        plan="",
+        nextBillingDate="",
+        nextBillingAmount=0.0,
+        hasPaid=False,
+    ),
     inventory=Inventory(items=[]),
     preferences=Preferences(
         notifications=Notifications(
-            accounting=Accounting(
-                plan="",
-                nextBillingDate="",
-                nextBillingAmount=0.0,
-                hasPaid=False,
-            ),
             email=Email(email="", updatesEnabled=False),
             sms=Sms(
                 phoneNumber="",
