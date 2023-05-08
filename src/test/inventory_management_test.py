@@ -125,6 +125,28 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
+    def test_no_send_if_no_previous_inventory_file(self):
+        test_client_name = "test"
+
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
+
+        with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
+            client.has_paid = True
+            client_schema = ClientSchema().dump(client)
+
+        self.monitor.skip_alerts = True
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
     def test_unlisted_to_in_stock(self):
         test_client_name = "test"
 

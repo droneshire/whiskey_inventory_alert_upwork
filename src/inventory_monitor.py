@@ -72,6 +72,8 @@ class InventoryMonitor:
         self.last_inventory: T.Optional[pd.core.frame.DataFrame] = None
         self.new_inventory: T.Optional[pd.core.frame.DataFrame] = None
 
+        self.skip_alerts = False
+
         self.web = web2_client.Web2Client()
 
         self.last_inventory_update_time: T.Optional[float] = None
@@ -90,6 +92,10 @@ class InventoryMonitor:
             log.print_ok(f"Found existing inventory file at {csv_file}")
             self.new_inventory = self._clean_inventory(csv_file)
             self.last_inventory = self.new_inventory.copy()
+
+        if self.new_inventory is None:
+            log.format_fail_arrow("Inventory doesn't exist, skipping alerts")
+            self.skip_alerts = True
 
     def _update_cache_from_local_db(self) -> None:
         client_names = ClientDb.get_client_names()
@@ -233,6 +239,9 @@ class InventoryMonitor:
                     )
                 continue
 
+            if self.skip_alerts:
+                continue
+
             items_to_update.append((nc_code, brand_name, item["Total Available"]))
 
         message = f"NC ABC Inventory Alert\n"
@@ -350,6 +359,8 @@ class InventoryMonitor:
 
         log.format_bright(f"Updating inventory from {download_url}")
 
+        self.last_inventory_update_time = time.time()
+
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
@@ -375,9 +386,16 @@ class InventoryMonitor:
         for _, item in self.new_inventory.iterrows():
             self._update_local_db_item("", item)
 
-        self.last_inventory_update_time = time.time()
-
         return self.new_inventory
+
+    def _update_sms_time_window(self, name: str) -> None:
+        with ClientDb.client(name) as db:
+            if db is None:
+                return
+            if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
+                self.twilio_util.update_send_window(
+                    db.alert_time_range_start, db.alert_time_range_end, db.alert_time_zone
+                )
 
     def _check_inventory(self) -> None:
         self._update_cache_from_local_db()
@@ -390,18 +408,13 @@ class InventoryMonitor:
             log.print_bold(f"{'─' * 80}")
             log.print_bold(f"Checking inventory for {name}...")
             self.check_client_inventory(client)
-            with ClientDb.client(name) as db:
-                if db is None:
-                    break
-                if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
-                    self.twilio_util.update_send_window(
-                        db.alert_time_range_start, db.alert_time_range_end, db.alert_time_zone
-                    )
+            self._update_sms_time_window(name)
 
         log.print_bold(f"{'─' * 80}")
 
         self._check_and_see_if_firebase_should_be_updated()
         self.twilio_util.check_sms_queue()
+        self.skip_alerts = False
 
     def run(self) -> None:
         self.update_inventory(self.download_url)
