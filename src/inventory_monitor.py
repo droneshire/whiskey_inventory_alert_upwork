@@ -366,6 +366,7 @@ class InventoryMonitor:
             if os.path.isfile(download_url):
                 shutil.copyfile(download_url, csv_file.name)
             elif self._is_time_to_check_inventory():
+                log.print_bold(f"Downloading inventory from {download_url}...")
                 try:
                     self.web.url_download(
                         download_url, csv_file.name, self.download_key, timeout=30.0
