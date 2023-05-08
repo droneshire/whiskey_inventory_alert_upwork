@@ -1,17 +1,34 @@
 from marshmallow import Schema, fields, post_load
-from sqlalchemy import types
+from sqlalchemy import ForeignKey, types
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Column
 from sqlalchemy.sql import func
 
 from database.connect import Base
+from database.models.item_association import ItemAssociationTable
+
+
+class TrackingItem(Base):
+    __tablename__ = "TrackingItem"
+
+    id = Column(types.Integer, primary_key=True)
+    client_id = Column(types.String, ForeignKey("Client.id"))
+    nc_code = Column(types.String(80), nullable=False)
+
+
+class TrackingItemSchema(Schema):  # type: ignore
+    id = fields.Int()
+    nc_code = fields.Str()
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return TrackingItem(**data)
 
 
 class Client(Base):
     __tablename__ = "Client"
 
     id = Column(types.String(80), primary_key=True, nullable=False)
-    items = relationship("Item", backref="Client")
     email = Column(types.String(80), nullable=False)
     email_alerts = Column(types.Boolean, default=True)
     alert_time_range_start = Column(types.Integer, nullable=True)
@@ -28,6 +45,8 @@ class Client(Base):
     next_billing_amount = Column(types.Float, default=0.0)
     has_paid = Column(types.Boolean, default=False)
     created_at = Column(types.DateTime(timezone=True), server_default=func.now())
+    items = relationship("Item", secondary=ItemAssociationTable, backref="Client")
+    tracked_items = relationship("TrackingItem", backref="Client")
 
     def __repr__(self):
         return f"<Client {self.name}:{self.phone_number}, {self.email}>"
