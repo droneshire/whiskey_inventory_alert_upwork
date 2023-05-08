@@ -10,7 +10,6 @@ import dotenv
 
 from database.client import DEFAULT_DB, ClientDb
 from database.connect import close_database, init_database, remove_database
-from database.helpers import add_client, add_or_update_item, track_item
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
@@ -102,8 +101,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_out_of_stock_to_in_stock(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00009")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -123,8 +122,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_unlisted_to_in_stock(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00120")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -148,11 +147,11 @@ class InventoryManagementTest(unittest.TestCase):
     def test_many_come_into_stock(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00107")
-        add_or_update_item(test_client_name, "00111")
-        add_or_update_item(test_client_name, "00120")
-        add_or_update_item(test_client_name, "00127")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00107")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00111")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00127")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -180,8 +179,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_new_and_last_inventory_check(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00120")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -196,10 +195,10 @@ class InventoryManagementTest(unittest.TestCase):
     def test_no_tracking_items_are_not_sent(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
         nc_code = "00009"
-        add_or_update_item(test_client_name, nc_code)
-        track_item(test_client_name, nc_code, False)
+        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
+        ClientDb.add_track_item(test_client_name, nc_code, False)
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -219,8 +218,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_send_window(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00009")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -257,8 +256,8 @@ class InventoryManagementTest(unittest.TestCase):
     def test_ignore_send_window(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
-        add_or_update_item(test_client_name, "00009")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = False
@@ -295,10 +294,10 @@ class InventoryManagementTest(unittest.TestCase):
     def test_client_not_paid_does_not_sent(self):
         test_client_name = "test"
 
-        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
         nc_code = "00009"
-        add_or_update_item(test_client_name, nc_code)
-        track_item(test_client_name, nc_code, False)
+        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
+        ClientDb.add_track_item(test_client_name, nc_code, False)
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True

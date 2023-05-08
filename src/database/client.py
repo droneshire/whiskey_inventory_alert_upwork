@@ -7,7 +7,7 @@ import dotenv
 from sqlalchemy.sql import func
 
 from database.connect import ManagedSession
-from database.models.client import Client
+from database.models.client import Client, TrackingItem
 from database.models.item import Item
 from util import log
 
@@ -16,12 +16,6 @@ DEFAULT_DB = os.environ.get("DEFAULT_DB", "client.db")
 
 
 class ClientDb:
-    def __init__(self, name: str, db_str: str = DEFAULT_DB) -> None:
-        self.id = name
-
-        with ManagedSession() as db:
-            client = db.query(Client).filter(Client.id == name).first()
-
     @staticmethod
     @contextmanager
     def client(client: str) -> T.Iterator[Client]:
@@ -41,7 +35,7 @@ class ClientDb:
     @contextmanager
     def item(nc_code: str) -> T.Iterator[Item]:
         with ManagedSession() as db:
-            item = db.query(Item).filter(Item.nc_code == nc_code).first()
+            item = db.query(Item).filter(Item.id == nc_code).first()
 
             yield item
 
@@ -49,6 +43,24 @@ class ClientDb:
                 return
 
             db.add(item)
+
+    @staticmethod
+    @contextmanager
+    def tracking_item(client: str, nc_code: str) -> T.Iterator[TrackingItem]:
+        with ManagedSession() as db:
+            tracking_item = (
+                db.query(TrackingItem)
+                .filter(TrackingItem.client_id == client)
+                .filter(TrackingItem.nc_code == nc_code)
+                .first()
+            )
+
+            yield tracking_item
+
+            if tracking_item is None:
+                return
+
+            db.add(tracking_item)
 
     @staticmethod
     def get_client_names() -> T.List[str]:
@@ -59,6 +71,33 @@ class ClientDb:
         return clients
 
     @staticmethod
+    def add_track_item(name: str, nc_code: str, do_track: bool = True) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == name).first()
+            if client is None:
+                return
+            tracking_item = db.query(TrackingItem).filter(TrackingItem.client_id == name).first()
+            if tracking_item is None and do_track:
+                TrackingItem(client_id=client.id, nc_code=nc_code)
+            elif tracking_item is not None and not do_track:
+                tracking_item.delete()
+
+    @staticmethod
+    def delete_track_item(name: str, nc_code: str) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == name).first()
+            if client is None:
+                return
+            tracking_item = (
+                db.query(TrackingItem)
+                .filter(TrackingItem.client_id == client.id)
+                .filter(TrackingItem.nc_code == nc_code)
+                .first()
+            )
+            if tracking_item is not None:
+                tracking_item.delete()
+
+    @staticmethod
     def delete_client(name: str, db_str: str = DEFAULT_DB, verbose: bool = False) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()
@@ -67,7 +106,7 @@ class ClientDb:
                     log.print_warn(f"Not deleting {name}, it's not in db")
                 return
 
-            db.query(Item).filter(Item.client_id == client.id).delete()
+            db.query(TrackingItem).filter(TrackingItem.client_id == client.id).delete()
             db.query(Client).filter(Client.id == name).delete()
 
     @staticmethod
@@ -98,23 +137,15 @@ class ClientDb:
         name: str, nc_code: str, db_str: str = DEFAULT_DB, verbose: bool = False
     ) -> None:
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.id == name).first()
-            if client is None:
-                if verbose:
-                    log.print_warn(f"Not deleting {nc_code}, {name} doesn't exist!")
-                return
-
-            item = db.query(Item).filter(Item.nc_code == nc_code).first()
+            item = db.query(Item).filter(Item.id == nc_code).first()
             if item is None:
                 if verbose:
-                    log.print_warn(f"Not deleting {nc_code}, it's not in client!")
-                return
-
-            db.query(Item).filter(Item.client_id == name).filter(Item.nc_code == nc_code).delete()
+                    log.print_warn(f"Not deleting {nc_code}, nothing to delete")
+            else:
+                db.query(Item).filter(Item.id == nc_code).delete()
 
     @staticmethod
     def add_or_update_item(
-        name: str,
         nc_code: str,
         brand_name: str = None,
         total_available: int = None,
@@ -123,37 +154,25 @@ class ClientDb:
         supplier: str = None,
         supplier_allotment: int = None,
         broker_name: str = None,
-        is_tracking: bool = True,
         db_str: str = DEFAULT_DB,
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.id == name).first()
-
-            if client and nc_code in [i.nc_code for i in client.items]:
-                if verbose:
-                    log.print_warn(f"Skipping add {nc_code}, already in client!")
-                return
-
-            item = db.query(Item).filter(Item.nc_code == nc_code).first()
+            item = db.query(Item).filter(Item.id == nc_code).first()
 
             # if it is in the database and not assigned to a client, nothing to update
-            if item is not None and client is None:
+            if item is not None:
                 if verbose:
                     log.print_warn(f"Skipping add {nc_code}, already in db!")
                 return
 
-            if client is None:
-                item = Item(nc_code=nc_code)
-                log.print_ok_arrow(f"Created item [{nc_code}]")
-            elif item is None or item.client_id != client.id:
+            if item is None:
                 item = Item(
-                    client_id=client.id,
-                    nc_code=nc_code,
+                    id=nc_code,
                 )
-                log.print_ok_arrow(f"Created item [{nc_code}] for {client.id}")
+                log.print_ok_arrow(f"Created item [{nc_code}]")
             else:
-                log.print_ok_arrow(f"Updated item [{nc_code}] for {client.id}")
+                log.print_ok_arrow(f"Updated item [{nc_code}]")
 
             if brand_name is not None:
                 item.brand_name = brand_name
@@ -170,5 +189,19 @@ class ClientDb:
             if broker_name is not None:
                 item.broker_name = broker_name
 
-            item.is_tracking = is_tracking
             db.add(item)
+
+    @staticmethod
+    def add_item_to_client(client: str, nc_code: str, db_str: str = DEFAULT_DB) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == client).first()
+            item = db.query(Item).filter(Item.id == nc_code).first()
+            if client is None or item is None:
+                return
+            client.items.append(item)
+
+    @staticmethod
+    def add_item_to_client_and_track(client: str, nc_code: str) -> None:
+        ClientDb.add_or_update_item(nc_code)
+        ClientDb.add_item_to_client(client, nc_code)
+        ClientDb.add_track_item(client, nc_code, True)

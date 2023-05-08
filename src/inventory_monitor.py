@@ -10,7 +10,6 @@ import typing as T
 import pandas as pd
 
 from database.client import ClientDb
-from database.helpers import add_or_update_item
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from firebase.firebase_client import FirebaseClient
@@ -106,19 +105,16 @@ class InventoryMonitor:
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
         # check and add item into db if not there already
-        with ClientDb(client_name).item(item[self.INVENTORY_CODE_KEY]) as db:
-            if db is None:
-                add_or_update_item(client_name, item[self.INVENTORY_CODE_KEY])
-
-        # update item in db
-        with ClientDb(client_name).item(item[self.INVENTORY_CODE_KEY]) as db:
-            db.brand_name = item["Brand Name"]
-            db.total_available = int(item["Total Available"])
-            db.size = item["Size"]
-            db.cases_per_pallet = int(item["Cases Per Pallet"])
-            db.supplier = item["Supplier"]
-            db.supplier_allotment = int(item["Supplier Allotment"])
-            db.broker_name = item["Broker Name"]
+        ClientDb.add_or_update_item(
+            item[self.INVENTORY_CODE_KEY],
+            brand_name=item["Brand Name"],
+            total_available=int(item["Total Available"]),
+            size=item["Size"],
+            cases_per_pallet=int(item["Cases Per Pallet"]),
+            supplier=item["Supplier"],
+            supplier_allotment=int(item["Supplier Allotment"]),
+            broker_name=item["Broker Name"],
+        )
 
     def _check_and_see_if_firebase_should_be_updated(self) -> None:
         if self.firebase_client is None:
@@ -167,14 +163,15 @@ class InventoryMonitor:
         self.twilio_util.set_ignore_time_window(not client["alert_range_enabled"])
 
         for item_schema in client["items"]:
-            nc_code = item_schema["nc_code"]
+            nc_code = item_schema["id"]
 
             if nc_code is None:
                 continue
 
             log.print_ok_arrow(f"Checking {nc_code}")
 
-            if not item_schema["is_tracking"]:
+            items_tracking = [t["nc_code"] for t in client["tracked_items"]]
+            if not items_tracking:
                 log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
                 continue
 
