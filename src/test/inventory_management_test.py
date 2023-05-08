@@ -199,6 +199,8 @@ class InventoryManagementTest(unittest.TestCase):
         nc_code = "00009"
         ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
         ClientDb.add_track_item(test_client_name, nc_code, False)
+        nc_code = "00111"
+        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
@@ -213,7 +215,7 @@ class InventoryManagementTest(unittest.TestCase):
         df = self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
-        self.assertEqual(self.twilio_stub.num_sent, 0)
+        self.assertEqual(self.twilio_stub.num_sent, 1)
 
     def test_send_window(self):
         test_client_name = "test"

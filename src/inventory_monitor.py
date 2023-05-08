@@ -173,7 +173,7 @@ class InventoryMonitor:
             items_tracking = [t["nc_code"] for t in client["tracked_items"]]
             if nc_code not in items_tracking:
                 log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
-                return
+                continue
 
             item: pd.core.frame.DataFrame = self._get_item_from_inventory(
                 item_schema, self.new_inventory
