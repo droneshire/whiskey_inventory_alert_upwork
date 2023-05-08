@@ -107,6 +107,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -127,6 +128,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -154,6 +156,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -182,6 +185,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -199,6 +203,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -219,6 +224,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = True
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -256,6 +262,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(test_client_name) as client:
             client.alert_range_enabled = False
+            client.has_paid = True
             client_schema = ClientSchema().dump(client)
 
         df = self.monitor.update_inventory(self.before_csv)
@@ -284,6 +291,29 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
         self.assertEqual(len(self.twilio_stub.message_queue), 0)
+
+    def test_client_not_paid_does_not_sent(self):
+        test_client_name = "test"
+
+        add_client(test_client_name, "test@gmail.com", "+1234567890")
+        nc_code = "00009"
+        add_or_update_item(test_client_name, nc_code)
+        track_item(test_client_name, nc_code, False)
+
+        with ClientDb.client(test_client_name) as client:
+            client.alert_range_enabled = True
+            client.has_paid = False
+            client_schema = ClientSchema().dump(client)
+
+        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
 
 
 if __name__ == "__main__":
