@@ -402,7 +402,10 @@ class InventoryMonitor:
                 return
             if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
                 self.twilio_util.update_send_window(
-                    db.alert_time_range_start, db.alert_time_range_end, db.alert_time_zone
+                    db.phone_number,
+                    db.alert_time_range_start,
+                    db.alert_time_range_end,
+                    db.alert_time_zone,
                 )
 
     def _check_inventory(self) -> None:
@@ -424,7 +427,7 @@ class InventoryMonitor:
 
         for name, client in self.clients.items():
             self._update_sms_time_window(name)
-            self.twilio_util.check_sms_queue()
+            self.twilio_util.check_sms_queue(client["phone_number"])
 
         self.skip_alerts = False
 

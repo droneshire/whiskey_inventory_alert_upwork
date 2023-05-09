@@ -54,6 +54,7 @@ class InventoryManagementTest(unittest.TestCase):
     temp_csv_file: T.Any = None
     temp_diff_file: T.Any = None
     test_client_name = "test"
+    test_num = "+1234567890"
 
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
@@ -111,7 +112,7 @@ class InventoryManagementTest(unittest.TestCase):
     def _setup_client(
         self, nc_codes: T.List[str], alert_range_enabled: bool, has_paid: bool, track: bool = True
     ) -> ClientSchema:
-        ClientDb.add_client(self.test_client_name, "test@gmail.com", "+1234567890")
+        ClientDb.add_client(self.test_client_name, "test@gmail.com", self.test_num)
         for nc_code in nc_codes:
             ClientDb.add_item_to_client_and_track(self.test_client_name, nc_code)
 
@@ -227,7 +228,7 @@ class InventoryManagementTest(unittest.TestCase):
         start_time = 8 * 60
         end_time = 22 * 60
         timezone = "America/Los_Angeles"
-        self.twilio_stub.update_send_window(start_time, end_time, timezone)
+        self.twilio_stub.update_send_window(self.test_num, start_time, end_time, timezone)
 
         self.twilio_stub.now = now
 
@@ -235,13 +236,13 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
-        self.assertEqual(len(self.twilio_stub.message_queue), 1)
+        self.assertEqual(len(self.twilio_stub.message_queue[self.test_num]), 1)
 
         self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12 + 8, 0, 0)
-        self.twilio_stub.check_sms_queue(self.twilio_stub.now)
+        self.twilio_stub.check_sms_queue(self.test_num, self.twilio_stub.now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
-        self.assertEqual(len(self.twilio_stub.message_queue), 0)
+        self.assertEqual(len(self.twilio_stub.message_queue[self.test_num]), 0)
 
     def test_ignore_send_window(self):
         client_schema = self._setup_client(["00009"], False, True)
@@ -257,7 +258,7 @@ class InventoryManagementTest(unittest.TestCase):
         start_time = 8 * 60
         end_time = 22 * 60
         timezone = "America/Los_Angeles"
-        self.twilio_stub.update_send_window(start_time, end_time, timezone)
+        self.twilio_stub.update_send_window(self.test_num, start_time, end_time, timezone)
 
         self.twilio_stub.now = now
 
@@ -265,13 +266,13 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
-        self.assertEqual(len(self.twilio_stub.message_queue), 0)
+        self.assertEqual(len(self.twilio_stub.message_queue[self.test_num]), 0)
 
         self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12 + 8, 0, 0)
-        self.twilio_stub.check_sms_queue(self.twilio_stub.now)
+        self.twilio_stub.check_sms_queue(self.test_num, self.twilio_stub.now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
-        self.assertEqual(len(self.twilio_stub.message_queue), 0)
+        self.assertEqual(len(self.twilio_stub.message_queue[self.test_num]), 0)
 
     def test_client_not_paid_does_not_sent(self):
         client_schema = self._setup_client(["00009"], True, False)
