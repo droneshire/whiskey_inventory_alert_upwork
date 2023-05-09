@@ -376,6 +376,9 @@ class InventoryMonitor:
                     )
                 except Exception as e:
                     log.print_fail(f"Error downloading inventory: {e}")
+            else:
+                log.print_normal_arrow("Not time to check inventory")
+                return None
 
             inventory = self._clean_inventory(csv_file.name)
 
