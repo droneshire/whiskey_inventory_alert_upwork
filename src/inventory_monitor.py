@@ -412,6 +412,8 @@ class InventoryMonitor:
                     db.alert_time_range_end,
                     db.alert_time_zone,
                 )
+            else:
+                log.print_bright(f"Client {name} does not have a time window set")
 
     def _check_inventory(self) -> None:
         self._update_cache_from_local_db()
