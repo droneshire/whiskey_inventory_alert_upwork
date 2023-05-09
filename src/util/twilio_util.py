@@ -17,7 +17,6 @@ class TwilioUtil:
         dry_run=False,
         verbose=False,
         time_between_sms: int = 1,
-        ignore_time_window: bool = False,
     ) -> None:
         self.dry_run = dry_run
         self.verbose = verbose
@@ -33,16 +32,17 @@ class TwilioUtil:
 
         self.message_queue: T.Dict[str, T.List[str]] = {}
         self.window: T.Dict[str, T.Dict[str, T.Any]] = {}
+        self.ignore_time_window: T.Dict[str, bool] = {}
+
         self.time_between_sms: int = time_between_sms
-        self.ignore_time_window: bool = ignore_time_window
 
     def _get_minutes_from_time(self, time: datetime.datetime) -> int:
         return time.hour * 60 + time.minute
 
-    def set_ignore_time_window(self, ignore: bool) -> None:
-        if self.ignore_time_window != ignore:
+    def set_ignore_time_window(self, to_number: str, ignore: bool) -> None:
+        if to_number in self.ignore_time_window and self.ignore_time_window[to_number] != ignore:
             log.print_bright("Setting ignore_time_window to {}", ignore)
-        self.ignore_time_window = ignore
+        self.ignore_time_window[to_number] = ignore
 
     def update_send_window(
         self, to_number: str, start_time: int, end_time: int, timezone: str
@@ -93,7 +93,7 @@ class TwilioUtil:
             now_minutes = self._get_minutes_from_time(converted_to_tz)
 
             is_within_window = now_minutes >= start_time and now_minutes <= end_time
-            should_send = is_within_window or self.ignore_time_window
+            should_send = is_within_window or self.ignore_time_window.get(to_number, True)
 
             if not should_send:
                 log.print_ok_blue_arrow(

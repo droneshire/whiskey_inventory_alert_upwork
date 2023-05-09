@@ -92,7 +92,6 @@ def main() -> None:
         sid=os.environ.get("TWILIO_ACCOUNT_SID"),
         dry_run=args.dry_run,
         verbose=args.verbose,
-        ignore_time_window=args.ignore_time_window,
     )
 
     email_accounts = get_email_accounts()

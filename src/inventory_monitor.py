@@ -174,7 +174,9 @@ class InventoryMonitor:
 
         items_to_update = []
 
-        self.twilio_util.set_ignore_time_window(not client["alert_range_enabled"])
+        self.twilio_util.set_ignore_time_window(
+            client["phone_number"], not client["alert_range_enabled"]
+        )
 
         for item_schema in client["items"]:
             nc_code = item_schema["id"]
@@ -423,12 +425,11 @@ class InventoryMonitor:
 
         log.print_bold(f"{'─' * 80}")
 
-        self._check_and_see_if_firebase_should_be_updated()
-
         for name, client in self.clients.items():
             self._update_sms_time_window(name)
             self.twilio_util.check_sms_queue(client["phone_number"])
 
+        self._check_and_see_if_firebase_should_be_updated()
         self.skip_alerts = False
 
     def run(self) -> None:
