@@ -415,13 +415,17 @@ class InventoryMonitor:
         for name, client in self.clients.items():
             log.print_bold(f"{'─' * 80}")
             log.print_bold(f"Checking inventory for {name}...")
-            self.check_client_inventory(client)
             self._update_sms_time_window(name)
+            self.check_client_inventory(client)
 
         log.print_bold(f"{'─' * 80}")
 
         self._check_and_see_if_firebase_should_be_updated()
-        self.twilio_util.check_sms_queue()
+
+        for name, client in self.clients.items():
+            self._update_sms_time_window(name)
+            self.twilio_util.check_sms_queue()
+
         self.skip_alerts = False
 
     def run(self) -> None:
