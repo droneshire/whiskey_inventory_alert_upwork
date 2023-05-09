@@ -53,6 +53,7 @@ class InventoryManagementTest(unittest.TestCase):
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     temp_csv_file: T.Any = None
     temp_diff_file: T.Any = None
+    test_client_name = "test"
 
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
@@ -107,99 +108,82 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor = None
         self.twilio_stub = None
 
-    def test_out_of_stock_to_in_stock(self):
-        test_client_name = "test"
+    def _setup_client(
+        self, nc_codes: T.List[str], alert_range_enabled: bool, has_paid: bool, track: bool = True
+    ) -> ClientSchema:
+        ClientDb.add_client(self.test_client_name, "test@gmail.com", "+1234567890")
+        for nc_code in nc_codes:
+            ClientDb.add_item_to_client_and_track(self.test_client_name, nc_code)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
+            if not track:
+                ClientDb.add_track_item(self.test_client_name, nc_code, False)
 
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
+        with ClientDb.client(self.test_client_name) as client:
+            client.alert_range_enabled = alert_range_enabled
+            client.has_paid = has_paid
             client_schema = ClientSchema().dump(client)
 
-        df = self.monitor.update_inventory(self.before_csv)
+        return client_schema
+
+    def test_out_of_stock_to_in_stock(self):
+        client_schema = self._setup_client(["00009"], True, True)
+
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
     def test_no_send_if_no_previous_inventory_file(self):
-        test_client_name = "test"
-
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
+        client_schema = self._setup_client(["00009"], True, True)
 
         self.monitor.skip_alerts = True
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
     def test_unlisted_to_in_stock(self):
-        test_client_name = "test"
+        client_schema = self._setup_client(["00120"], True, True)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
-        with ClientDb.client(test_client_name) as client:
+        with ClientDb.client(self.test_client_name) as client:
             updates_sent = client.updates_sent
         self.assertEqual(updates_sent, 1)
 
     def test_many_come_into_stock(self):
-        test_client_name = "test"
+        nc_codes = ["00107", "00111", "00120", "00127"]
+        client_schema = self._setup_client(nc_codes, True, True)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00107")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00111")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00127")
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        df = self.monitor.update_inventory(self.after_csv_many)
+        self.monitor.update_inventory(self.after_csv_many)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
-        with ClientDb.client(test_client_name) as client:
+        with ClientDb.client(self.test_client_name) as client:
             updates_sent = client.updates_sent
 
         self.assertEqual(updates_sent, 4)
@@ -208,58 +192,31 @@ class InventoryManagementTest(unittest.TestCase):
         self.assertTrue(self.monitor._is_time_to_check_inventory())
 
     def test_new_and_last_inventory_check(self):
-        test_client_name = "test"
+        client_schema = self._setup_client(["00120"], True, True)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00120")
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertTrue(self.monitor.new_inventory.equals(self.monitor.last_inventory))
 
     def test_no_tracking_items_are_not_sent(self):
-        test_client_name = "test"
+        self._setup_client(["00009"], True, True, False)
+        client_schema = self._setup_client(["00111"], True, True, True)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        nc_code = "00009"
-        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
-        ClientDb.add_track_item(test_client_name, nc_code, False)
-        nc_code = "00111"
-        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
     def test_send_window(self):
-        test_client_name = "test"
+        client_schema = self._setup_client(["00009"], True, True)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
@@ -274,7 +231,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.twilio_stub.now = now
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
@@ -287,17 +244,9 @@ class InventoryManagementTest(unittest.TestCase):
         self.assertEqual(len(self.twilio_stub.message_queue), 0)
 
     def test_ignore_send_window(self):
-        test_client_name = "test"
+        client_schema = self._setup_client(["00009"], False, True)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        ClientDb.add_item_to_client_and_track(test_client_name, "00009")
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = False
-            client.has_paid = True
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
@@ -312,7 +261,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.twilio_stub.now = now
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
@@ -325,24 +274,42 @@ class InventoryManagementTest(unittest.TestCase):
         self.assertEqual(len(self.twilio_stub.message_queue), 0)
 
     def test_client_not_paid_does_not_sent(self):
-        test_client_name = "test"
+        client_schema = self._setup_client(["00009"], True, False)
 
-        ClientDb.add_client(test_client_name, "test@gmail.com", "+1234567890")
-        nc_code = "00009"
-        ClientDb.add_item_to_client_and_track(test_client_name, nc_code)
-        ClientDb.add_track_item(test_client_name, nc_code, False)
-
-        with ClientDb.client(test_client_name) as client:
-            client.alert_range_enabled = True
-            client.has_paid = False
-            client_schema = ClientSchema().dump(client)
-
-        df = self.monitor.update_inventory(self.before_csv)
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        df = self.monitor.update_inventory(self.after_csv)
+        self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+    def test_empty_csv_does_not_send(self):
+        client_schema = self._setup_client(["00009"], True, True)
+
+        self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        # create an "empty" csv file, just the header
+        temp_csv = tempfile.NamedTemporaryFile(mode="w", delete=False)
+        try:
+            with open(self.before_csv, "r") as infile, open(temp_csv.name, "w") as outfile:
+                for line in infile.readlines():
+                    outfile.write(line)
+                    break
+
+            self.monitor.update_inventory(temp_csv.name)
+        finally:
+            os.remove(temp_csv.name)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)

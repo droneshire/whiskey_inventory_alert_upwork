@@ -113,7 +113,7 @@ class InventoryMonitor:
         time_till_next_update = get_pretty_seconds(
             self.time_between_inventory_checks - time_since_last_update
         )
-        log.print_normal(f"Time since last inventory update: {time_till_next_update}")
+        log.print_normal(f"Time till inventory update: {time_till_next_update}")
         return time_since_last_update > self.time_between_inventory_checks
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
@@ -169,7 +169,8 @@ class InventoryMonitor:
         with ClientDb.client(client["id"]) as db:
             if db is None:
                 return
-            db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
+            if self.last_inventory_update_time:
+                db.last_updated = datetime.datetime.fromtimestamp(self.last_inventory_update_time)
 
         items_to_update = []
 
