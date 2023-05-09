@@ -348,7 +348,7 @@ class InventoryMonitor:
         try:
             dataframe = pd.read_csv(csv_file)
         except:
-            log.print_fail("Empty inventory file")
+            log.print_fail("Error parsing inventory file")
             return None
 
         # clean up the code column
@@ -372,11 +372,15 @@ class InventoryMonitor:
                         download_url, csv_file.name, self.download_key, timeout=30.0
                     )
                 except Exception as e:
-                    log.print_fail(f"Error getting inventory: {e}")
+                    log.print_fail(f"Error downloading inventory: {e}")
 
             inventory = self._clean_inventory(csv_file.name)
 
             if inventory is None:
+                return None
+
+            if len(inventory) == 0:
+                log.print_fail("No inventory found")
                 return None
 
             self.new_inventory = inventory
