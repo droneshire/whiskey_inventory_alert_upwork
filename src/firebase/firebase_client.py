@@ -32,6 +32,7 @@ class Changes(enum.Enum):
 
 class FirebaseClient:
     TIME_FORMAT = "%Y_%m_%d%H_%M_%S_%f"
+    HEALTH_PING_TIME = 60 * 60  # 1 hour
 
     def __init__(self, credentials_file: str, verbose: bool = False) -> None:
         if not firebase_admin._apps:
@@ -41,6 +42,7 @@ class FirebaseClient:
         self.verbose = verbose
 
         self.clients_ref = self.db.collection("clients")
+        self.health_monitor_ref = self.db.collection("health_monitor")
 
         self.clients_watcher = self.clients_ref.on_snapshot(self._collection_snapshot_handler)
 
@@ -48,6 +50,14 @@ class FirebaseClient:
 
         self.callback_done = threading.Event()
         self.db_cache_lock = threading.Lock()
+
+        self.last_health_ping = time.time()
+
+    def _health_ping(self) -> None:
+        if time.time() - self.last_health_ping < self.HEALTH_PING_TIME:
+            return
+        log.print_normal("Health ping")
+        self.health_monitor_ref.document("heartbeat").set({"ping": firestore.SERVER_TIMESTAMP})
 
     def _delete_client(self, name: str) -> None:
         ClientDb.delete_client(name)
