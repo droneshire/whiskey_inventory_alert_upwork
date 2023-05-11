@@ -442,4 +442,6 @@ class InventoryMonitor:
 
         self._check_inventory()
 
+        self.firebase_client.health_ping()
+
         wait.wait(self.WAIT_TIME)

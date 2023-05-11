@@ -42,7 +42,7 @@ class FirebaseClient:
         self.verbose = verbose
 
         self.clients_ref = self.db.collection("clients")
-        self.health_monitor_ref = self.db.collection("health_monitor")
+        self.admin_ref = self.db.collection("admin")
 
         self.clients_watcher = self.clients_ref.on_snapshot(self._collection_snapshot_handler)
 
@@ -51,13 +51,7 @@ class FirebaseClient:
         self.callback_done = threading.Event()
         self.db_cache_lock = threading.Lock()
 
-        self.last_health_ping = time.time()
-
-    def _health_ping(self) -> None:
-        if time.time() - self.last_health_ping < self.HEALTH_PING_TIME:
-            return
-        log.print_normal("Health ping")
-        self.health_monitor_ref.document("heartbeat").set({"ping": firestore.SERVER_TIMESTAMP})
+        self.last_health_ping = None
 
     def _delete_client(self, name: str) -> None:
         ClientDb.delete_client(name)
@@ -255,3 +249,12 @@ class FirebaseClient:
             log.print_bright("Handling firebase database updates")
             for client, info in self.db_cache.items():
                 self._handle_firebase_update(client, info)
+
+    def health_ping(self) -> None:
+        if self.last_health_ping and time.time() - self.last_health_ping < self.HEALTH_PING_TIME:
+            return
+
+        self.last_health_ping = time.time()
+
+        log.print_ok_arrow("Health ping")
+        self.admin_ref.document("health_monitor").set({"heartbeat": firestore.SERVER_TIMESTAMP})
