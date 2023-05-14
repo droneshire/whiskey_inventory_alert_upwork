@@ -53,16 +53,13 @@ tar xzfv /tmp/dropbox/dropbox.tar.gz --strip 1 -C /opt/dropbox
 
 # will need to link dropbox account here and
 # background the dropboxd process afterwards:
-# Ctrl+Z and then `bg`
+# Ctrl+c
 
 wait_for_input
 
 curl -o /etc/init.d/dropbox https://gist.githubusercontent.com/thisismitch/6293d3f7f5fa37ca6eab/raw/2b326bf77368cbe5d01af21c623cd4dd75528c3d/dropbox
 curl -o /etc/systemd/system/dropbox.service https://gist.githubusercontent.com/thisismitch/6293d3f7f5fa37ca6eab/raw/99947e2ef986492fecbe1b7bfbaa303fefc42a62/dropbox.service
 sudo chmod +x /etc/systemd/system/dropbox.service /etc/init.d/dropbox
-
-mkdir -p $DROPBOX_DIR/logs
-ln -s $DROPBOX_DIR/logs $REPO_DIR/logs
 
 mkdir -p /etc/sysconfig
 echo "DROPBOX_USERS=\"`whoami`\"" >> /etc/sysconfig/dropbox
@@ -184,6 +181,43 @@ ln -s /opt/dropbox ~/.dropbox-dist
 # copy config and credentials files
 
 wait_for_input
+
+mkdir -p $DROPBOX_DIR/logs
+
+if [ -z "$DROPBOX_DIR/.env" ]; then
+    cat <<EOT >> $DROPBOX_DIR/.env
+DEFAULT_DB="inventory_manager.db"
+
+# Configure the Twilio SMS provider.
+TWILIO_FROM_SMS_NUMBER="<INSERT YOUR TWILIO SMS NUMBER HERE>"
+TWILIO_AUTH_TOKEN="<INSERT YOUR TWILIO AUTH TOKEN HERE>"
+TWILIO_ACCOUNT_SID="<INSERT YOUR TWILIO ACCOUNT SID HERE>"
+
+# Website to download the inventory from
+INVENTORY_DOWNLOAD_URL="https://abc.nc.gov/StoresBoards/ExportData"
+INVENTORY_DOWNLOAD_KEY="------WebKitFormBoundaryf3qSjXGzLaxCryi8--\r\n"
+
+# Admin settings
+ADMIN_NAME="<INSERT YOUR ADMIN NAME HERE>"
+ADMIN_PHONE="<INSERT YOUR ADMIN PHONE NUMBER HERE>"
+ADMIN_EMAIL="<INSERT YOUR ADMIN EMAIL HERE>"
+ADMIN_EMAIL_PASSWORD_ENCRYPTED="<INSERT YOUR ENCRYPTED ADMIN EMAIL PASSWORD HERE>"
+
+# Firebase settings
+GOOGLE_APPLICATION_CREDENTIALS="firebase_service_account.json"
+EOT
+fi
+
+ln -s $DROPBOX_DIR/logs $REPO_DIR/logs
+if [ ! -f "$DROPBOX_DIR/firebase_service_account.json" ]; then
+    echo "Please download the firebase service account json file "
+    echo "from the firebase console and place it in your dropbox folder"
+    echo "as firebase_service_account.json"
+    wait_for_input
+fi
+ln -s $DROPBOX_DIR/firebase_service_account.json $REPO_DIR/firebase_service_account.json
+
+ln -s $DROPBOX_DIR/.env $REPO_DIR/.env
 
 python3 -m pip install --user virtualenv
 pip install wheel
