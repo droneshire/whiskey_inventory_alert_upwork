@@ -3,7 +3,6 @@ from sqlalchemy.schema import Column, Table
 
 from database.connect import Base
 
-
 ItemAssociationTable = Table(
     "association",
     Base.metadata,

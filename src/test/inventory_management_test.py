@@ -13,7 +13,7 @@ from database.connect import close_database, init_database, remove_database
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
-from util import log, email
+from util import email, log
 from util.twilio_util import TwilioUtil
 
 

@@ -1,5 +1,4 @@
 import datetime
-import deepdiff
 import json
 import os
 import shutil
@@ -7,8 +6,10 @@ import tempfile
 import time
 import typing as T
 
+import deepdiff
 import pandas as pd
 from rich.progress import track
+
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema

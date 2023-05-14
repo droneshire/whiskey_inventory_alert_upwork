@@ -5,9 +5,10 @@ Monitor the inventory of the store
 import argparse
 import os
 import typing as T
-import dotenv
 
+import dotenv
 from rich.progress import track
+
 from database.client import DEFAULT_DB, ClientDb
 from database.connect import init_database
 from database.models.client import Client

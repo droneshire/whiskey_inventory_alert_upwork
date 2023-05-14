@@ -82,6 +82,11 @@ def main() -> None:
 
     dotenv.load_dotenv(".env")
 
+    PIDFILE = os.environ.get("BOT_PIDFILE", "monitor_inventory.pid")
+
+    with open(PIDFILE, "w") as outfile:
+        outfile.write(str(os.getpid()))
+
     log.setup_log(args.log_level, args.log_dir, "db_convert")
 
     init_database(args.log_dir, DEFAULT_DB, Client, args.force_update)
@@ -114,8 +119,10 @@ def main() -> None:
         try:
             monitor.run()
         except KeyboardInterrupt:
+            os.remove(path=PIDFILE)
             break
         except Exception as e:
+            os.remove(path=PIDFILE)
             log.print_fail(f"Exception: {e}")
             alarm_emoji = "\U0001F6A8"
             message = f"{alarm_emoji} Admin Inventory Alert\n\n"

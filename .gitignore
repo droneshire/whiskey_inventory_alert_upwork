@@ -3,6 +3,7 @@ test/test_data/database/
 *inventory.csv
 *.db
 *.json
+*.pid
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
