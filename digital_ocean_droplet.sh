@@ -224,10 +224,10 @@ pip install wheel
 
 tmux new -s bot-session
 
-cd $REPO_DIR
-
-make init
-make install
-make inventory_bot_prod
-
 echo "Exit this session using `Ctrl+B, D`, and then run 'tmux attach -t bot-session' to reattach"
+sleep 2
+
+tmux send-keys -t bot-session:0 -n "Bot Window" "cd $REPO_DIR; make init; make install; make inventory_bot_prod" C-m
+tmux send-keys -t bot-session:1 -n "Reset Window" "cd $REPO_DIR; make reset_server" C-m
+
+tmux attach-session -t bot-session

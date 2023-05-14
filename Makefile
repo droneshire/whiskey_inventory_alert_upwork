@@ -41,6 +41,9 @@ inventory_bot_prod:
 inventory_bot_dev:
 	$(RUN_PY) executables.monitor_inventory --wait-time 10 --dry-run --ignore-time-window --log-level DEBUG
 
+reset_server:
+	$(RUN_PY) executables.reset_server
+
 create_test_db:
 	$(RUN_PY) database.executables.add_to_database --item 00009
 	$(RUN_PY) database.executables.add_to_database --item 00005
