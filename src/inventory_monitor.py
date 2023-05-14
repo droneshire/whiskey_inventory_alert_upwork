@@ -37,7 +37,7 @@ class InventoryMonitor:
         self,
         download_url: str,
         download_key: str,
-        twilio_util: TwilioUtil,
+        twilio_util: T.Optional[TwilioUtil],
         admin_email: T.Optional[email.Email],
         log_dir: str,
         credentials_file: str,
@@ -50,13 +50,12 @@ class InventoryMonitor:
     ) -> None:
         self.download_url = download_url
         self.download_key = download_key
-        self.twilio_util: TwilioUtil = twilio_util
+        self.twilio_util: T.Optional[TwilioUtil] = twilio_util
         self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
         self.inventory_change_file = inventory_diff_file or os.path.join(
             log_dir, "inventory_changes.json"
         )
-        self.use_local_db = use_local_db
         self.dry_run = dry_run
         self.verbose = verbose
 
@@ -174,9 +173,10 @@ class InventoryMonitor:
 
         items_to_update = []
 
-        self.twilio_util.set_ignore_time_window(
-            client["phone_number"], not client["alert_range_enabled"]
-        )
+        if self.twilio_util:
+            self.twilio_util.set_ignore_time_window(
+                client["phone_number"], not client["alert_range_enabled"]
+            )
 
         for item_schema in client["items"]:
             nc_code = item_schema["id"]
@@ -279,7 +279,7 @@ class InventoryMonitor:
             log.print_normal_arrow("Dry run, not sending SMS")
             return
 
-        if client["phone_number"] and client["phone_alerts"]:
+        if client["phone_number"] and client["phone_alerts"] and self.twilio_util:
             self.twilio_util.send_sms_if_in_window(
                 client["phone_number"],
                 message,
@@ -405,7 +405,7 @@ class InventoryMonitor:
         with ClientDb.client(name) as db:
             if db is None:
                 return
-            if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone:
+            if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone and self.twilio_util:
                 self.twilio_util.update_send_window(
                     db.phone_number,
                     db.alert_time_range_start,
@@ -432,7 +432,8 @@ class InventoryMonitor:
 
         for name, client in self.clients.items():
             self._update_sms_time_window(name)
-            self.twilio_util.check_sms_queue(client["phone_number"])
+            if self.twilio_util:
+                self.twilio_util.check_sms_queue(client["phone_number"])
 
         self._check_and_see_if_firebase_should_be_updated()
         self.skip_alerts = False
