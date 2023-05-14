@@ -243,7 +243,8 @@ class InventoryMonitor:
                 )
 
             if previous_item is not None and previous_available != 0:
-                log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
+                if self.verbose:
+                    log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
                 continue
 
             inventory_threshold = client["threshold_inventory"]
