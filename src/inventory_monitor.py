@@ -8,7 +8,7 @@ import time
 import typing as T
 
 import pandas as pd
-
+from rich.progress import track
 from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
@@ -178,7 +178,7 @@ class InventoryMonitor:
                 client["phone_number"], not client["alert_range_enabled"]
             )
 
-        for item_schema in client["items"]:
+        for item_schema in track(client["items"], description=f"{client['id']} items"):
             nc_code = item_schema["id"]
 
             if nc_code is None:
@@ -253,7 +253,7 @@ class InventoryMonitor:
 
         message = f"NC ABC Inventory Alert\n"
 
-        for info in items_to_update:
+        for info in track(items_to_update, description="Updating info"):
             nc_code, brand_name, total_available = info
             message += (
                 f"{STOCK_EMOJI} {nc_code}: {brand_name} is now in stock with {total_available}\n\n"

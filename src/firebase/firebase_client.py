@@ -41,8 +41,8 @@ class FirebaseClient:
         self.db = firestore.client()
         self.verbose = verbose
 
-        self.clients_ref = self.db.collection("clients")
-        self.admin_ref = self.db.collection("admin")
+        self.clients_ref: CollectionReference = self.db.collection("clients")
+        self.admin_ref: CollectionReference = self.db.collection("admin")
 
         self.clients_watcher = self.clients_ref.on_snapshot(self._collection_snapshot_handler)
 
@@ -258,3 +258,12 @@ class FirebaseClient:
 
         log.print_ok_arrow("Health ping")
         self.admin_ref.document("health_monitor").set({"heartbeat": firestore.SERVER_TIMESTAMP})
+
+    def add_items_to_firebase(self, client: str, items_dict: defs.Client) -> None:
+        log.print_warn(f"Adding items to firebase")
+        doc_ref: DocumentReference = self.clients_ref.document(client)
+        items_dict = doc_ref.get(["inventory.items"]).to_dict()
+        log.print_bold(f"Items before: {len(items_dict['inventory']['items'].keys())}")
+        doc_ref.set(items_dict, merge=["inventory.items"])
+        items_dict = doc_ref.get(["inventory.items"]).to_dict()
+        log.print_bold(f"Items before: {len(items_dict['inventory']['items'].keys())}")
