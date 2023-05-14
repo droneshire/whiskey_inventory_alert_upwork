@@ -23,9 +23,9 @@ TIME_BETWEEN_CHECKS = 60 * 10
 
 
 def try_to_kill_process() -> None:
-    PIDFILE = os.environ.get("BOT_PIDFILE", "monitor_inventory.pid")
+    pidfile = os.environ.get("BOT_PIDFILE", "monitor_inventory.pid")
     try:
-        with open(PIDFILE, "r") as infile:
+        with open(pidfile, "r") as infile:
             pid = int(infile.read())
             os.kill(pid, 9)
     except:
@@ -41,7 +41,8 @@ def reset_server() -> None:
     if not bot_start_command:
         log.print_fail_arrow("BOT_START_COMMAND not set in .env file.")
         sys.exit(1)
-    print(bot_start_command)
+
+    # kinda sketchy, as we can execute arb code here from the `.env` file...
     subprocess.call(bot_start_command, shell=True)
     log.print_ok_arrow("Server reset complete.")
 
