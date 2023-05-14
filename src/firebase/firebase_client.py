@@ -124,7 +124,7 @@ class FirebaseClient:
         self.callback_done.set()
 
     def _handle_firebase_update(self, client: str, db_client: defs.Client) -> None:
-        log.print_normal(f"Checking to see if we need to update {client} in database...")
+        log.print_normal(f"Checking to see if we need to update {client} databases...")
         old_db_client = copy.deepcopy(db_client)
 
         if not db_client:
@@ -146,17 +146,29 @@ class FirebaseClient:
         if phone_number and not phone_number.startswith("+1"):
             phone_number = "+1" + phone_number
 
+        with ClientDb.client(client) as db:
+            client_schema = ClientSchema().dump(db)
+
+        items_schema = ClientDb.all_items()
+        client_items_list = [i["id"] for i in client_schema["items"]]
+        client_tracking_list = [t["nc_code"] for t in client_schema["tracked_items"]]
+
         for nc_code, info in safe_get(db_client, "inventory.items".split(".")).items():
-            ClientDb.add_track_item(
-                client, nc_code, info.get("action", "") == defs.Actions.TRACKING.value
-            )
+            is_tracking_in_firebase = info.get("action", "") == defs.Actions.TRACKING.value
+            if nc_code in client_items_list:
+                is_tracking_in_db = nc_code in client_tracking_list
+                if is_tracking_in_db != is_tracking_in_firebase:
+                    log.print_warn(f"Updating tracking status for {nc_code} in database")
+                    ClientDb.add_track_item(client, nc_code, is_tracking_in_firebase)
+            else:
+                log.print_warn(f"Adding {nc_code} in database")
+                ClientDb.add_item_to_client(client, nc_code)
+                ClientDb.add_track_item(client, nc_code, is_tracking_in_firebase)
 
-            ClientDb.add_item_to_client(client, nc_code)
-
-            with ClientDb.item(nc_code) as item:
-                if item and item.total_available and item.brand_name:
-                    db_client["inventory"]["items"][nc_code]["name"] = item.brand_name
-                    db_client["inventory"]["items"][nc_code]["available"] = item.total_available
+            db_client["inventory"]["items"][nc_code]["name"] = items_schema[nc_code]["brand_name"]
+            db_client["inventory"]["items"][nc_code]["available"] = items_schema[nc_code][
+                "total_available"
+            ]
 
         with ClientDb.client(client) as db:
             if db is not None:

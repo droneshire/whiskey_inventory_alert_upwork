@@ -89,6 +89,7 @@ class InventoryManagementTest(unittest.TestCase):
             log_dir=self.test_dir,
             credentials_file="",
             dry_run=False,
+            verbose=False,
         )
 
         self.monitor.init()
@@ -168,6 +169,28 @@ class InventoryManagementTest(unittest.TestCase):
         with ClientDb.client(self.test_client_name) as client:
             updates_sent = client.updates_sent
         self.assertEqual(updates_sent, 1)
+
+    def test_listed_to_unlisted_has_zero_inventory(self):
+        nc_code = "00139"
+        client_schema = self._setup_client([nc_code], False, True)
+
+        self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        with ClientDb.item(nc_code) as item:
+            item_available = item.total_available
+        self.assertEqual(item_available, 190)
+
+        self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        with ClientDb.item(nc_code) as item:
+            item_available = item.total_available
+        self.assertEqual(item_available, 0)
 
     def test_many_come_into_stock(self):
         nc_codes = ["00107", "00111", "00120", "00127"]

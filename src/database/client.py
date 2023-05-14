@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 
 from database.connect import ManagedSession
 from database.models.client import Client, TrackingItem
-from database.models.item import Item
+from database.models.item import Item, ItemSchema
 from util import log
 
 dotenv.load_dotenv(".env")
@@ -106,7 +106,7 @@ class ClientDb:
                 tracking_item.delete()
 
     @staticmethod
-    def delete_client(name: str, db_str: str = DEFAULT_DB, verbose: bool = False) -> None:
+    def delete_client(name: str, verbose: bool = False) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()
             if client is None:
@@ -122,7 +122,6 @@ class ClientDb:
         name: str,
         email: str = "",
         phone_number: str = "",
-        db_str: str = DEFAULT_DB,
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
@@ -141,9 +140,7 @@ class ClientDb:
             db.add(client)
 
     @staticmethod
-    def delete_item(
-        name: str, nc_code: str, db_str: str = DEFAULT_DB, verbose: bool = False
-    ) -> None:
+    def delete_item(name: str, nc_code: str, verbose: bool = False) -> None:
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.id == nc_code).first()
             if item is None:
@@ -162,17 +159,10 @@ class ClientDb:
         supplier: str = None,
         supplier_allotment: int = None,
         broker_name: str = None,
-        db_str: str = DEFAULT_DB,
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.id == nc_code).first()
-
-            # if it is in the database and not assigned to a client, nothing to update
-            if item is not None:
-                if verbose:
-                    log.print_warn(f"Skipping add {nc_code}, already in db!")
-                return
 
             if item is None:
                 item = Item(
@@ -200,7 +190,7 @@ class ClientDb:
             db.add(item)
 
     @staticmethod
-    def add_item_to_client(client: str, nc_code: str, db_str: str = DEFAULT_DB) -> None:
+    def add_item_to_client(client: str, nc_code: str) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == client).first()
             item = db.query(Item).filter(Item.id == nc_code).first()
@@ -216,3 +206,9 @@ class ClientDb:
         ClientDb.add_or_update_item(nc_code)
         ClientDb.add_item_to_client(client, nc_code)
         ClientDb.add_track_item(client, nc_code, True)
+
+    @staticmethod
+    def all_items() -> T.Dict[str, ItemSchema]:
+        with ManagedSession() as db:
+            items = db.query(Item).all()
+            return {i.id: ItemSchema().dump(i) for i in items}

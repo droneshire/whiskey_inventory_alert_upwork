@@ -128,6 +128,9 @@ class InventoryMonitor:
             broker_name=item["Broker Name"],
         )
 
+    def _set_inventory_to_zero(self, nc_code: str) -> None:
+        ClientDb.add_or_update_item(nc_code, total_available=0)
+
     def _check_and_see_if_firebase_should_be_updated(self) -> None:
         if self.firebase_client is None:
             return
@@ -178,31 +181,36 @@ class InventoryMonitor:
                 client["phone_number"], not client["alert_range_enabled"]
             )
 
-        for item_schema in track(client["items"], description=f"{client['id']} items"):
+        log.print_bright(f"Checking {len(client['items'])} items...")
+
+        for item_schema in client["items"]:
             nc_code = item_schema["id"]
 
             if nc_code is None:
                 continue
 
-            log.print_ok_arrow(f"Checking {nc_code}")
+            if self.verbose:
+                log.print_ok_arrow(f"Checking {nc_code}")
 
             items_tracking = [t["nc_code"] for t in client["tracked_items"]]
             if nc_code not in items_tracking:
                 log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
                 continue
 
-            item: pd.core.frame.DataFrame = self._get_item_from_inventory(
+            item_df: pd.core.frame.DataFrame = self._get_item_from_inventory(
                 item_schema, self.new_inventory
             )
 
-            if item is None:
+            if item_df is None:
                 log.print_normal_arrow(f"Did not find {nc_code} in inventory")
+                self._set_inventory_to_zero(nc_code)
                 continue
 
-            self._update_local_db_item(client["id"], item)
+            self._update_local_db_item(client["id"], item_df)
 
-            if item["Total Available"] == 0:
-                log.print_normal_arrow(f"{nc_code} is out of stock")
+            if item_df["Total Available"] == 0:
+                if self.verbose:
+                    log.print_normal_arrow(f"{nc_code} is out of stock")
                 continue
 
             previous_item: pd.core.frame.DataFrame = self._get_item_from_inventory(
@@ -215,7 +223,7 @@ class InventoryMonitor:
             else:
                 previous_available = previous_item["Total Available"]
 
-            delta = item["Total Available"] - previous_available
+            delta = item_df["Total Available"] - previous_available
             if delta > 0:
                 delta_str = log.format_ok(f"+{delta}")
             elif delta < 0:
@@ -223,17 +231,18 @@ class InventoryMonitor:
             else:
                 delta_str = log.format_normal(f"{delta}")
 
-            brand_name = item["Brand Name"]
+            brand_name = item_df["Brand Name"]
 
             if self.verbose:
                 log.print_ok_blue_arrow(
-                    f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item['Total Available']}"
+                    f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item_df['Total Available']}"
                 )
-            log.print_ok_blue_arrow(
-                f"{STOCK_EMOJI} {nc_code} {brand_name} change: {delta_str} units"
-            )
+            if self.verbose or delta != 0:
+                log.print_ok_blue_arrow(
+                    f"{STOCK_EMOJI} {nc_code} {brand_name} change: {delta_str} units"
+                )
 
-            if previous_item is not None and previous_available != 0:
+            if self.verbose and previous_item is not None and previous_available != 0:
                 log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
                 continue
 
@@ -249,11 +258,11 @@ class InventoryMonitor:
             if self.skip_alerts:
                 continue
 
-            items_to_update.append((nc_code, brand_name, item["Total Available"]))
+            items_to_update.append((nc_code, brand_name, item_df["Total Available"]))
 
         message = f"NC ABC Inventory Alert\n"
 
-        for info in track(items_to_update, description="Updating info"):
+        for info in items_to_update:
             nc_code, brand_name, total_available = info
             message += (
                 f"{STOCK_EMOJI} {nc_code}: {brand_name} is now in stock with {total_available}\n\n"
@@ -367,6 +376,7 @@ class InventoryMonitor:
 
         with tempfile.NamedTemporaryFile() as csv_file:
             if os.path.isfile(download_url):
+                log.print_bold(f"Downloading inventory from {download_url}...")
                 shutil.copyfile(download_url, csv_file.name)
             elif self._is_time_to_check_inventory():
                 log.print_bold(f"Downloading inventory from {download_url}...")
