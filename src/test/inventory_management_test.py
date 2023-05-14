@@ -59,9 +59,8 @@ class InventoryManagementTest(unittest.TestCase):
     def setUp(self) -> None:
         self.twilio_stub = TwilioUtilStub()
 
-        self.email: email.Email = email.Email(
-            address="test@gmail.com", password="test", quiet=False
-        )
+        self.email: email.Email = None
+
         dotenv.load_dotenv(".env")
 
         init_database(self.test_dir, DEFAULT_DB, Client, True)
