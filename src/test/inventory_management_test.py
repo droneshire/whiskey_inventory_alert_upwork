@@ -142,7 +142,22 @@ class InventoryManagementTest(unittest.TestCase):
     def test_no_send_if_no_previous_inventory_file(self):
         client_schema = self._setup_client(["00009"], True, True)
 
+        # simulate no inventory file existing
         self.monitor.skip_alerts = True
+
+        self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+    def test_change_above_threshold_that_was_in_inventory_before_doesnt_send(self):
+        client_schema = self._setup_client(["00221"], True, True)
+
         self.monitor.update_inventory(self.before_csv)
         self.monitor.check_client_inventory(client_schema)
 

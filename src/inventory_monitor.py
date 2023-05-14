@@ -234,26 +234,24 @@ class InventoryMonitor:
 
             brand_name = item_df["Brand Name"]
 
-            if self.verbose:
-                log.print_ok_blue_arrow(
+            if self.verbose or delta != 0:
+                log.print_normal_arrow(
                     f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item_df['Total Available']}"
                 )
-            if self.verbose or delta != 0:
                 log.print_ok_blue_arrow(
                     f"{STOCK_EMOJI} {nc_code} {brand_name} change: {delta_str} units"
                 )
 
-            if self.verbose and previous_item is not None and previous_available != 0:
+            if previous_item is not None and previous_available != 0:
                 log.print_normal_arrow(f"No alert, {nc_code} was previously in stock")
                 continue
 
             inventory_threshold = client["threshold_inventory"]
 
             if delta < inventory_threshold:
-                if self.verbose:
-                    log.print_normal_arrow(
-                        f"{nc_code} is below inventory threshold of {inventory_threshold}"
-                    )
+                log.print_normal_arrow(
+                    f"{nc_code} is below inventory threshold of {inventory_threshold}"
+                )
                 continue
 
             if self.skip_alerts:
