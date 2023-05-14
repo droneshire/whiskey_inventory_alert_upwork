@@ -35,25 +35,12 @@ You'll need the `SID`, `AUTH_TOKEN`, and phone number down below.
 ### Host Machine
 Set up a linux device to deploy the inventory manager bot to.
 
-Make sure the following packages are installed:
-```
-apt update
-apt -y install git python3-pip python3-testresources python3-venv python3-gpg vim
-```
 Create an ssh key for github and add it as a [Deploy Key](https://github.com/droneshire/whiskey_inventory_alert_upwork/settings/keys) to this repo.
 ```
 ssh-keygen -t ed25519 -C <YOUR EMAIL> -f /root/.ssh/id_ed25519 -q -N ""
 ```
-Clone the repo once the deploy key has been added and change directories into the repo root directory.
+Copy `digital_ocean_droplet.sh` to the host machine and run it.
 
-In the repo root directory:
-```
-python -m pip install --user virtualenv
-pip install wheel
-make init
-source ./venv/bin/activate
-make install
-```
 ### Config Files
 
 - **`.env`**
