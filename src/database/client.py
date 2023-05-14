@@ -169,7 +169,7 @@ class ClientDb:
                     id=nc_code,
                 )
                 log.print_ok_arrow(f"Created item [{nc_code}]")
-            else:
+            elif verbose:
                 log.print_ok_arrow(f"Updated item [{nc_code}]")
 
             if brand_name is not None:
