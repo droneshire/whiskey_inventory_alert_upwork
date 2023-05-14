@@ -4,8 +4,7 @@ HOME_DIR=/home/droplet
 REPO_NAME=whiskey_inventory_alert_upwork
 REPO_DIR=$HOME_DIR/$REPO_NAME
 REPO_GITHUB=git@github.com:droneshire/whiskey_inventory_alert_upwork.git
-
-DROPBOX_DIR=/root/Dropbox/droplet_bot
+DROPBOX_DIR=~/Dropbox/droplet_bot
 EMAIL="test@gmail.com"
 
 wait_for_input() {
@@ -21,13 +20,8 @@ wait_for_input() {
 }
 
 
-echo "deb [arch=i386,amd64] http://linux.dropbox.com/ubuntu disco main" >> /etc/apt/sources.list.d/dropbox.list
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E
 apt -y update
-apt -y install dropbox
-
-apt -y update
-apt -y install git python3-pip python3-testresources python3-venv python3-gpg nginx nmap net-tools
+apt -y install git daemon python3-pip python3-testresources python3-venv python3-gpg nginx nmap net-tools
 
 ssh-keygen -t ed25519 -C $EMAIL -f /root/.ssh/id_ed25519 -q -N ""
 
@@ -51,32 +45,155 @@ wait_for_input
 
 git clone $REPO_GITHUB $REPO_DIR
 
-python3 -m pip install --user virtualenv
+mkdir -p /tmp/dropbox
+mkdir -p /opt/dropbox
+wget -O /tmp/dropbox/dropbox.tar.gz "https://www.dropbox.com/download?plat=lnx.x86_64"
+tar xzfv /tmp/dropbox/dropbox.tar.gz --strip 1 -C /opt/dropbox
+/opt/dropbox/dropboxd
 
-cd $REPO_DIR
-python3 -m venv env
-source env/bin/activate
+# will need to link dropbox account here and
+# background the dropboxd process afterwards:
+# Ctrl+Z and then `bg`
 
-pip install wheel
-pip install -r requirements.txt
+wait_for_input
 
-dropbox start -i
-
-# will need to approve the device here
+curl -o /etc/init.d/dropbox https://gist.githubusercontent.com/thisismitch/6293d3f7f5fa37ca6eab/raw/2b326bf77368cbe5d01af21c623cd4dd75528c3d/dropbox
+curl -o /etc/systemd/system/dropbox.service https://gist.githubusercontent.com/thisismitch/6293d3f7f5fa37ca6eab/raw/99947e2ef986492fecbe1b7bfbaa303fefc42a62/dropbox.service
+sudo chmod +x /etc/systemd/system/dropbox.service /etc/init.d/dropbox
 
 mkdir -p $DROPBOX_DIR/logs
 ln -s $DROPBOX_DIR/logs $REPO_DIR/logs
 
+mkdir -p /etc/sysconfig
+echo "DROPBOX_USERS=\"`whoami`\"" >> /etc/sysconfig/dropbox
+
+## Create ubuntu version of /etc/systemd/system/dropbox:
+cat <<EOT >> /etc/systemd/system/dropbox
+#!/bin/sh
+
+# To configure, add line with DROPBOX_USERS="user1 user2" to /etc/sysconfig/dropbox
+# Probably should use a dropbox group in /etc/groups instead.
+
+# Source function library.
+. /lib/lsb/init-functions
+
+prog=dropboxd
+lockfile=${LOCKFILE-/var/lock/subsys/$prog}
+RETVAL=0
+
+start() {
+    echo -n $"Starting $prog"
+    echo
+    if [ -z $DROPBOX_USERS ] ; then
+        echo -n ": unconfigured: $config"
+        echo_failure
+        echo
+        rm -f ${lockfile} ${pidfile}
+        RETURN=6
+        return $RETVAL
+    fi
+    for dbuser in $DROPBOX_USERS; do
+        dbuser_home=`cat /etc/passwd | grep "^$dbuser:" | cut -d":" -f6`
+        daemon --user $dbuser /bin/sh -c "/opt/dropbox/dropboxd"
+    done
+    RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && touch ${lockfile}
+    return $RETVAL
+}
+
+status() {
+    for dbuser in $DROPBOX_pUSERS; do
+        dbpid=`pgrep -u $dbuser dropbox | grep -v grep`
+        if [ -z $dbpid ] ; then
+            echo "dropboxd for USER $dbuser: not running."
+        else
+            echo "dropboxd for USER $dbuser: running (pid $dbpid)"
+        fi
+    done
+}
+stop() {
+    echo -n $"Stopping $prog"
+    for dbuser in $DROPBOX_USERS; do
+        dbuser_home=`cat /etc/passwd | grep "^$dbuser:" | cut -d":" -f6`
+        dbpid=`pgrep -u $dbuser dropbox | grep -v grep`
+        if [ -z $dbpid ] ; then
+            echo -n ": dropboxd for USER $dbuser: already stopped."
+            RETVAL=0
+        else
+            kill -KILL $dbpid
+            RETVAL=$?
+        fi
+    done
+    echo
+    [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        start
+        ;;
+    status)
+        status
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo $"Usage: $prog {start|status|stop|restart}"
+        RETVAL=3
+esac
+EOT
+
+## Modify /etc/systemd/system/dropbox.service:
+cat <<EOT >> /etc/systemd/system/dropbox.service
+[Unit]
+Description=Dropbox is a filesyncing sevice provided by dropbox.com. This service starts up the dropbox daemon.
+After=network.target syslog.target
+
+[Service]
+Environment=LC_ALL=en_US.UTF-8
+Environment=LANG=en_US.UTF-8
+EnvironmentFile=-/etc/sysconfig/dropbox
+ExecStart=/etc/systemd/system/dropbox start
+ExecReload=/etc/systemd/system/dropbox restart
+ExecStop=/etc/systemd/system/dropbox stop
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+# enable systemd service
+systemctl daemon-reload
+systemctl start dropbox
+systemctl enable dropbox
+
+# install dropbox cli
+cd ~
+curl -LO https://www.dropbox.com/download?dl=packages/dropbox.py
+chmod +x ~/dropbox.py
+ln -s /opt/dropbox ~/.dropbox-dist
+
 # copy logs dir if needed (should be in dropbox)
 # copy config and credentials files
 
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx HTTP'
-sudo ufw enable
-
 wait_for_input
 
+python3 -m pip install --user virtualenv
+pip install wheel
+
 tmux new -s bot-session
+
 cd $REPO_DIR
+
+make init
+make install
+make inventory_bot_prod
 
 echo "Exit this session using `Ctrl+B, D`, and then run 'tmux attach -t bot-session' to reattach"
