@@ -158,10 +158,11 @@ class FirebaseClient:
             if nc_code in client_items_list:
                 is_tracking_in_db = nc_code in client_tracking_list
                 if is_tracking_in_db != is_tracking_in_firebase:
-                    log.print_warn(f"Updating tracking status for {nc_code} in database")
+                    log.print_normal(
+                        f"Updating tracking status for {nc_code} in database: {is_tracking_in_firebase}"
+                    )
                     ClientDb.add_track_item(client, nc_code, is_tracking_in_firebase)
             else:
-                log.print_warn(f"Adding {nc_code} in database")
                 ClientDb.add_item_to_client(client, nc_code)
                 ClientDb.add_track_item(client, nc_code, is_tracking_in_firebase)
 
