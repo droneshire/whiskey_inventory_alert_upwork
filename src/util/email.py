@@ -41,12 +41,12 @@ def send_email_raw(
     with yagmail.SMTP(email["address"], email["password"]) as email_sender:
         if isinstance(to_addresses, str):
             to_addresses = [to_addresses]
-            email_sender.send(
-                to=to_addresses,
-                subject=subject,
-                contents=content,
-                attachments=attachments,
-            )
+        email_sender.send(
+            to=to_addresses,
+            subject=subject,
+            contents=content,
+            attachments=attachments,
+        )
         if verbose:
             log.print_ok(f"To: {', '.join(to_addresses)}\nFrom: {email['address']}")
             log.print_ok(f"Subject: {subject}")
@@ -77,4 +77,4 @@ def send_email(
         except:
             pass
 
-    log.print_fail("Failed to send email alert")
+    log.print_fail(f"Failed to send email alert for {' '.join(to_addresses)}")

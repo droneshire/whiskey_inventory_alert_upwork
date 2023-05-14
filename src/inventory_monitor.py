@@ -405,7 +405,12 @@ class InventoryMonitor:
         with ClientDb.client(name) as db:
             if db is None:
                 return
-            if db.alert_time_range_end and db.alert_time_range_start and db.alert_time_zone and self.twilio_util:
+            if (
+                db.alert_time_range_end
+                and db.alert_time_range_start
+                and db.alert_time_zone
+                and self.twilio_util
+            ):
                 self.twilio_util.update_send_window(
                     db.phone_number,
                     db.alert_time_range_start,

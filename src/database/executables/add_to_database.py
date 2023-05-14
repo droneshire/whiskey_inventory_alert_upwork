@@ -35,7 +35,6 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--log-dir", default=log_dir)
 
-    # item nc_code argument
     parser.add_argument(
         "--name",
         type=str,
