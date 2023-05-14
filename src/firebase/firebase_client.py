@@ -266,4 +266,4 @@ class FirebaseClient:
         log.print_bold(f"Items before: {len(items_dict['inventory']['items'].keys())}")
         doc_ref.set(items_dict, merge=["inventory.items"])
         items_dict = doc_ref.get(["inventory.items"]).to_dict()
-        log.print_bold(f"Items before: {len(items_dict['inventory']['items'].keys())}")
+        log.print_bold(f"Items after: {len(items_dict['inventory']['items'].keys())}")
