@@ -269,7 +269,9 @@ class FirebaseClient:
         self.last_health_ping = time.time()
 
         log.print_ok_arrow("Health ping")
-        self.admin_ref.document("health_monitor").set({"heartbeat": firestore.SERVER_TIMESTAMP})
+        self.admin_ref.document("health_monitor").set(
+            {"heartbeat": firestore.SERVER_TIMESTAMP}, merge=["heartbeat"]
+        )
 
     def add_items_to_firebase(self, client: str, items_dict: defs.Client) -> None:
         log.print_warn(f"Adding items to firebase")
