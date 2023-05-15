@@ -454,10 +454,10 @@ class InventoryMonitor:
         self.skip_alerts = False
 
     def run(self) -> None:
+        self.firebase_client.health_ping()
+
         self.update_inventory(self.download_url)
 
         self._check_inventory()
-
-        self.firebase_client.health_ping()
 
         wait.wait(self.WAIT_TIME)
