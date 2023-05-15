@@ -27,6 +27,7 @@ def try_to_kill_process() -> None:
     try:
         with open(pidfile, "r") as infile:
             pid = int(infile.read())
+            log.print_fail_arrow(f"Killing process with pid {pid}...")
             os.kill(pid, 9)
     except:
         pass
