@@ -298,7 +298,7 @@ class InventoryMonitor:
             email.send_email(
                 emails=[self.email],
                 to_addresses=[client["email"]],
-                subject="{STOCK_EMOJI} NC ABC Inventory Alert",
+                subject=f"{STOCK_EMOJI} NC ABC Inventory Alert",
                 content=message,
                 verbose=True,
             )
