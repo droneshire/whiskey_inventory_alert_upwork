@@ -19,7 +19,7 @@ from util import log, wait
 
 dotenv.load_dotenv(".env")
 
-TIME_BETWEEN_CHECKS = 60 * 10
+TIME_BETWEEN_CHECKS = 30
 
 
 def try_to_kill_process() -> None:

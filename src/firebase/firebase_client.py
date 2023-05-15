@@ -31,7 +31,7 @@ class Changes(enum.Enum):
 
 class FirebaseClient:
     TIME_FORMAT = "%Y_%m_%d%H_%M_%S_%f"
-    HEALTH_PING_TIME = 60 * 60  # 1 hour
+    HEALTH_PING_TIME = 60 * 30
 
     def __init__(self, credentials_file: str, verbose: bool = False) -> None:
         if not firebase_admin._apps:
