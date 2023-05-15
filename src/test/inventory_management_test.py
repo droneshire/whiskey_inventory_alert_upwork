@@ -304,6 +304,7 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor.check_client_inventory(client_schema)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
+        self.assertTrue(self.test_num in self.twilio_stub.message_queue)
         self.assertEqual(len(self.twilio_stub.message_queue[self.test_num]), 1)
 
         self.twilio_stub.now = datetime.datetime(2020, 1, 1, 12 + 8, 0, 0)

@@ -33,6 +33,7 @@ class InventoryMonitor:
     }
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
+    MAX_DELTA_IN_INVENTORY_COUNT = 4
     MAX_CHARS_PER_MESSAGE = 1600
     MAX_ITEMS_PER_MESSAGE = 10
 
@@ -80,6 +81,7 @@ class InventoryMonitor:
 
         self.last_inventory_update_time: T.Optional[float] = None
         self.last_query_firebase_time: T.Optional[float] = None
+        self.last_inventory_size = 0
 
         self.firebase_client: FirebaseClient = (
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
@@ -407,6 +409,14 @@ class InventoryMonitor:
                 self.last_inventory_update_time = time.time()
                 return None
 
+            change_in_inventory = self.last_inventory_size - len(inventory)
+            if change_in_inventory >= self.MAX_DELTA_IN_INVENTORY_COUNT:
+                log.print_warn(
+                    f"Inventory size delta is too large: {change_in_inventory}. Not using inventory."
+                )
+                return None
+
+            self.last_inventory_size = len(inventory)
             self.new_inventory = inventory
 
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
