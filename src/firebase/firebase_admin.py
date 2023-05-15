@@ -21,4 +21,4 @@ def get_reset(credentials_file: str) -> bool:
 
     admin_ref: CollectionReference = db.collection("admin")
     doc = admin_ref.document("health_monitor").get()
-    return doc.to_dict()["reset"]
+    return doc.to_dict().get("reset", False)
