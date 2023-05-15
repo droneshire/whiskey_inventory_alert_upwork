@@ -30,7 +30,7 @@ def try_to_kill_process() -> None:
             log.print_fail_arrow(f"Killing process with pid {pid}...")
             os.kill(pid, 9)
     except:
-        pass
+        log.print_normal("No process to kill.")
 
 
 def reset_server() -> None:
