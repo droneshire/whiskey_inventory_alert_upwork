@@ -33,6 +33,8 @@ class InventoryMonitor:
     }
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
+    MAX_CHARS_PER_MESSAGE = 1600
+    MAX_ITEMS_PER_MESSAGE = 10
 
     def __init__(
         self,
@@ -182,14 +184,10 @@ class InventoryMonitor:
                 client["phone_number"], not client["alert_range_enabled"]
             )
 
-        log.print_bright(f"Checking {len(client['items'])} items...")
+        client_items = {i["id"]: i for i in client["items"]}
+        log.print_bright(f"Checking {len(client_items.keys())} items...")
 
-        for item_schema in client["items"]:
-            nc_code = item_schema["id"]
-
-            if nc_code is None:
-                continue
-
+        for nc_code, item_schema in client_items.items():
             if self.verbose:
                 log.print_ok_arrow(f"Checking {nc_code}")
 
@@ -371,6 +369,8 @@ class InventoryMonitor:
         return dataframe
 
     def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
+        log.print_normal(f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}")
+
         if self.new_inventory is not None:
             self.last_inventory = self.new_inventory.copy()
 
@@ -397,9 +397,11 @@ class InventoryMonitor:
 
             if len(inventory) == 0:
                 log.print_fail("No inventory found")
+                self.last_inventory_update_time = time.time()
                 return None
 
             self.new_inventory = inventory
+
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
 
