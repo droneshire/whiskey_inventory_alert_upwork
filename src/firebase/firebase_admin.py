@@ -10,7 +10,7 @@ def set_reset(credentials_file: str, reset: bool = False) -> None:
     db = firestore.client()
 
     admin_ref: CollectionReference = db.collection("admin")
-    admin_ref.document("health_monitor").set({"reset": reset})
+    admin_ref.document("health_monitor").set({"reset": reset}, merge=["reset"])
 
 
 def get_reset(credentials_file: str) -> bool:
