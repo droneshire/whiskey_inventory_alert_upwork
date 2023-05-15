@@ -58,13 +58,16 @@ def main() -> None:
     credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
     firebase_server: FirebaseAdmin = FirebaseAdmin(credentials_file=credentials_file)
 
-    while True:
-        if firebase_server.is_reset:
-            log.print_bright("Reset signal detected.")
-            firebase_server.set_reset(reset=False)
-            log.print_ok_arrow("Bot reset complete.")
-        firebase_server.refresh()
-        wait.wait(TIME_BETWEEN_CHECKS)
+    try:
+        while True:
+            if firebase_server.is_reset:
+                log.print_bright("Reset signal detected.")
+                firebase_server.set_reset(reset=False)
+                log.print_ok_arrow("Bot reset complete.")
+            firebase_server.refresh()
+            wait.wait(TIME_BETWEEN_CHECKS)
+    except KeyboardInterrupt:
+        os.remove(path=pidfile)
 
 
 if __name__ == "__main__":
