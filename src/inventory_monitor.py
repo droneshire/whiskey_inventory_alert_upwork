@@ -360,7 +360,7 @@ class InventoryMonitor:
         try:
             dataframe = pd.read_csv(csv_file)
         except:
-            log.print_fail("Error parsing inventory file")
+            log.print_fail(f"Error parsing inventory file")
             return None
 
         # clean up the code column
@@ -374,7 +374,7 @@ class InventoryMonitor:
         if self.new_inventory is not None:
             self.last_inventory = self.new_inventory.copy()
 
-        with tempfile.NamedTemporaryFile() as csv_file:
+        with tempfile.NamedTemporaryFile(suffix=".csv") as csv_file:
             if os.path.isfile(download_url):
                 log.print_bold(f"Downloading inventory from {download_url}...")
                 shutil.copyfile(download_url, csv_file.name)
