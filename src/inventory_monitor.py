@@ -34,6 +34,7 @@ class InventoryMonitor:
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
     MAX_DELTA_IN_INVENTORY_COUNT = 4
+    MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE = 10
     MAX_CHARS_PER_MESSAGE = 1600
     MAX_ITEMS_PER_MESSAGE = 10
 
@@ -81,7 +82,9 @@ class InventoryMonitor:
 
         self.last_inventory_update_time: T.Optional[float] = None
         self.last_query_firebase_time: T.Optional[float] = None
-        self.last_inventory_size = 0
+        self.last_valid_inventory_download_size = 0
+        self.inventory_downloads_without_change = 0
+        self.last_inventory_download_size = 0
 
         self.firebase_client: FirebaseClient = (
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
@@ -377,6 +380,38 @@ class InventoryMonitor:
 
         return dataframe
 
+    def _is_inventory_valid(self, inventory: pd.core.frame.DataFrame) -> bool:
+        if len(inventory) == 0:
+            log.print_fail("No inventory found")
+            self.last_inventory_update_time = time.time()
+            return False
+
+        if self.last_inventory_download_size == len(inventory):
+            self.inventory_downloads_without_change += 1
+        else:
+            self.inventory_downloads_without_change = 0
+
+        # override_delta_requirement = (
+        #     self.inventory_downloads_without_change > self.MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE
+        # )
+
+        self.last_inventory_download_size = len(inventory)
+
+        change_in_inventory = self.last_valid_inventory_download_size - len(inventory)
+        if (
+            not override_delta_requirement
+            and change_in_inventory >= self.MAX_DELTA_IN_INVENTORY_COUNT
+        ):
+            log.print_warn(
+                f"Inventory size delta is too large: {change_in_inventory}. Not using inventory."
+            )
+            self.last_inventory_update_time = time.time()
+            return False
+
+        self.last_valid_inventory_download_size = len(inventory)
+        self.inventory_downloads_without_change = 0
+        return True
+
     def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
         log.print_normal(f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}")
 
@@ -404,19 +439,9 @@ class InventoryMonitor:
             if inventory is None:
                 return None
 
-            if len(inventory) == 0:
-                log.print_fail("No inventory found")
-                self.last_inventory_update_time = time.time()
+            if not self._is_inventory_valid(inventory):
                 return None
 
-            change_in_inventory = self.last_inventory_size - len(inventory)
-            if change_in_inventory >= self.MAX_DELTA_IN_INVENTORY_COUNT:
-                log.print_warn(
-                    f"Inventory size delta is too large: {change_in_inventory}. Not using inventory."
-                )
-                return None
-
-            self.last_inventory_size = len(inventory)
             self.new_inventory = inventory
 
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
