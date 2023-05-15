@@ -69,6 +69,8 @@ def main() -> None:
             firebase_server.refresh()
             wait.wait(TIME_BETWEEN_CHECKS)
     except KeyboardInterrupt:
+        log.print_fail_arrow("Keyboard interrupt detected.")
+    finally:
         os.remove(path=pidfile)
 
 
