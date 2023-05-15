@@ -278,6 +278,13 @@ class InventoryMonitor:
 
         log.print_ok(message)
 
+        if (
+            len(message) > self.MAX_CHARS_PER_MESSAGE
+            or len(items_to_update) > self.MAX_ITEMS_PER_MESSAGE
+        ):
+            log.print_fail("Message too long, not sending (something prob went wrong)")
+            return
+
         if not client["has_paid"]:
             log.print_warn("Not sending alert, client has not paid")
             return
