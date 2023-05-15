@@ -9,11 +9,10 @@ import typing as T
 import deepdiff
 import firebase_admin
 from firebase_admin import credentials, firestore
-from google.api_core.datetime_helpers import DatetimeWithNanoseconds
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 from google.cloud.firestore_v1.collection import CollectionReference
 from google.cloud.firestore_v1.document import DocumentReference
-from google.cloud.firestore_v1.watch import DocumentChange, Watch
+from google.cloud.firestore_v1.watch import DocumentChange
 from sqlalchemy.sql import func
 
 from database.client import ClientDb

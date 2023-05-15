@@ -14,7 +14,7 @@ import typing as T
 
 import dotenv
 
-from firebase.firebase_admin import get_reset, set_reset
+from firebase.firebase_admin import FirebaseAdmin
 from util import log, wait
 
 dotenv.load_dotenv(".env")
@@ -47,18 +47,7 @@ def reset_server() -> None:
     log.print_ok_arrow("Server reset complete.")
 
 
-def check_firebase_for_reset() -> None:
-    """Check the firestore database for a reset signal."""
-    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
-    reset = get_reset(credentials_file=credentials_file)
-    if reset:
-        log.print_bright("Reset signal detected.")
-        reset_server()
-        set_reset(credentials_file=credentials_file, reset=False)
-        log.print_ok_arrow("Bot reset complete.")
-
-
-if __name__ == "__main__":
+def main() -> None:
     dotenv.load_dotenv(".env")
 
     pidfile = os.environ.get("RESET_PIDFILE", "reset_server.pid")
@@ -66,6 +55,17 @@ if __name__ == "__main__":
     with open(pidfile, "w") as outfile:
         outfile.write(str(os.getpid()))
 
+    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+    firebase_server: FirebaseAdmin = FirebaseAdmin(credentials_file=credentials_file)
+
     while True:
-        check_firebase_for_reset()
+        if firebase_server.is_reset:
+            log.print_bright("Reset signal detected.")
+            firebase_server.set_reset(reset=False)
+            log.print_ok_arrow("Bot reset complete.")
+        firebase_server.refresh()
         wait.wait(TIME_BETWEEN_CHECKS)
+
+
+if __name__ == "__main__":
+    main()
