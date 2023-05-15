@@ -63,6 +63,7 @@ def main() -> None:
         while True:
             if firebase_server.is_reset:
                 log.print_bright("Reset signal detected.")
+                reset_server()
                 firebase_server.set_reset(reset=False)
                 log.print_ok_arrow("Bot reset complete.")
             firebase_server.refresh()
