@@ -199,6 +199,37 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
+    def test_major_drop_in_inventory_for_enough_times_does_trigger_send(self):
+        # items that all have non-zero inventory
+        items_to_track = [
+            "00009",
+            "00018",
+            "00107",
+            "00111",
+            "00127",
+            "00139",
+            "00221",
+        ]
+        client_schema = self._setup_client(items_to_track, True, True)
+
+        self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        # create a temp file and copy the before csv into it except for half of the items
+        temp_before_csv = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".csv")
+        with open(self.after_csv, "r") as infile, open(temp_before_csv.name, "w") as outfile:
+            lines = [l for i, l in enumerate(infile.readlines()) if i < 6]
+            outfile.writelines(lines)
+
+        # +2 because it is a < comparison not <= and when it changes it gets reset to 0
+        for _ in range(self.monitor.MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE + 2):
+            self.monitor.update_inventory(temp_before_csv.name)
+            self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+
     def test_unlisted_to_in_stock(self):
         client_schema = self._setup_client(["00120"], True, True)
 

@@ -33,7 +33,7 @@ class InventoryMonitor:
     }
     WAIT_TIME = 30
     INVENTORY_CODE_KEY = "NC Code"
-    MAX_DELTA_IN_INVENTORY_COUNT = 4
+    MAX_DELTA_IN_INVENTORY_COUNT = 2
     MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE = 10
     MAX_CHARS_PER_MESSAGE = 1600
     MAX_ITEMS_PER_MESSAGE = 10
@@ -391,10 +391,9 @@ class InventoryMonitor:
         else:
             self.inventory_downloads_without_change = 0
 
-        # override_delta_requirement = (
-        #     self.inventory_downloads_without_change > self.MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE
-        # )
-        override_delta_requirement = False
+        override_delta_requirement = (
+            self.inventory_downloads_without_change > self.MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE
+        )
 
         self.last_inventory_download_size = len(inventory)
 
