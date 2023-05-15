@@ -394,6 +394,7 @@ class InventoryMonitor:
         # override_delta_requirement = (
         #     self.inventory_downloads_without_change > self.MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE
         # )
+        override_delta_requirement = False
 
         self.last_inventory_download_size = len(inventory)
 
