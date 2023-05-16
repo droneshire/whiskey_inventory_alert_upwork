@@ -53,6 +53,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable logging of differences in inventory",
     )
+    parser.add_argument(
+        "--log-rotate",
+        action="store_true",
+        help="Rotate the logs and tar them up",
+    )
     return parser.parse_args()
 
 
@@ -91,6 +96,8 @@ def main() -> None:
     with open(PIDFILE, "w") as outfile:
         outfile.write(str(os.getpid()))
 
+    if args.log_rotate:
+        log.tar_logs(args.log_dir, "monitor_inventory", remove_after=True)
     log.setup_log(args.log_level, args.log_dir, "db_convert")
 
     init_database(args.log_dir, DEFAULT_DB, Client, args.force_update)

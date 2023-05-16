@@ -36,7 +36,7 @@ test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
 inventory_bot_prod:
-	$(RUN_PY) executables.monitor_inventory --wait-time 60
+	$(RUN_PY) executables.monitor_inventory --wait-time 60 --log-rotate
 
 inventory_bot_dev:
 	$(RUN_PY) executables.monitor_inventory --wait-time 10 --dry-run --ignore-time-window --log-level DEBUG --enable-diff-log

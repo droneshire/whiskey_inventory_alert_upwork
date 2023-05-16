@@ -1,6 +1,8 @@
 import logging
 import os
+import shutil
 import sys
+import tarfile
 import time
 import typing as T
 
@@ -140,6 +142,29 @@ def make_formatter_printer(
         return printer
 
 
+def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: int = 5) -> None:
+    """Tar the logs directory to a file called logs.tar.gz"""
+    if not tarname.endswith(".tar.gz"):
+        tarname += ".tar.gz"
+
+    # if there are other tar names, increment the name by 1
+    tar_index = 1
+    while os.path.exists(os.path.join(log_dir, tarname)):
+        tarname = tarname.replace(".tar.gz", "")
+        tarname = tarname.split(".")[0]
+        tarname = tarname + f".{tar_index}.tar.gz"
+        tar_index += 1
+        if tar_index > max_tars:
+            break
+
+    tar_name = os.path.join(log_dir, tarname)
+    with tarfile.open(tar_name, "w:gz") as tar:
+        tar.add(os.path.join(log_dir, "logs"), arcname="logs")
+
+    if remove_after:
+        shutil.rmtree(os.path.join(log_dir, "logs"))
+
+
 def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
     if log_level == "NONE":
         return
@@ -148,7 +173,11 @@ def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
         time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time())) + f"_{id_string}.log"
     )
 
-    log_file = os.path.join(log_dir, log_name)
+    logs_dir = os.path.join(log_dir, "logs")
+
+    make_sure_path_exists(path=logs_dir)
+
+    log_file = os.path.join(logs_dir, log_name)
 
     logging.basicConfig(
         filename=log_file,
