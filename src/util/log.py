@@ -157,12 +157,14 @@ def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: i
         if tar_index > max_tars:
             break
 
+    logs_dir = os.path.join(log_dir, "logs")
+    make_sure_path_exists(logs_dir)
     tar_name = os.path.join(log_dir, tarname)
     with tarfile.open(tar_name, "w:gz") as tar:
-        tar.add(os.path.join(log_dir, "logs"), arcname="logs")
+        tar.add(logs_dir, arcname="logs")
 
     if remove_after:
-        shutil.rmtree(os.path.join(log_dir, "logs"))
+        shutil.rmtree(logs_dir)
 
 
 def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
