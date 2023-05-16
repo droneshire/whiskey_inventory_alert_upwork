@@ -263,6 +263,16 @@ class InventoryMonitor:
                 )
                 continue
 
+            if "out_of_stock_time" not in item_schema:
+                now = datetime.datetime.utcnow()
+                time_out_of_stock = now - item_schema["out_of_stock_time"]
+
+                if time_out_of_stock <= client["min_hours_since_out_of_stock"]:
+                    log.print_warn(
+                        f"{nc_code} has not been out of stock long enough: {out_of_stock_time}"
+                    )
+                    continue
+
             if self.skip_alerts:
                 continue
 

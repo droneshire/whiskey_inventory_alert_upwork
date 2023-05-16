@@ -177,6 +177,9 @@ class FirebaseClient:
                 db.threshold_inventory = safe_get(
                     db_client, "inventory.inventoryChange".split("."), 0
                 )
+                db.min_hours_since_out_of_stock = safe_get(
+                    db_client, "inventory.min_hours_since_out_of_stock".split("."), 0
+                )
                 db.phone_alerts = safe_get(
                     db_client, "preferences.notifications.sms.updatesEnabled".split("."), False
                 )

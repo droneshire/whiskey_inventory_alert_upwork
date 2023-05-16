@@ -188,6 +188,8 @@ class ClientDb:
                 item.supplier_allotment = supplier_allotment
             if broker_name is not None:
                 item.broker_name = broker_name
+            if out_of_stock_time is not None:
+                item.out_of_stock_time = out_of_stock_time
 
             db.add(item)
 
