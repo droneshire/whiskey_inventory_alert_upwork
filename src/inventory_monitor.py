@@ -50,6 +50,7 @@ class InventoryMonitor:
         inventory_csv_file: str = "",
         inventory_diff_file: str = "",
         time_between_inventory_checks: T.Optional[int] = None,
+        enable_inventory_delta_file: bool = False,
         dry_run: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -85,6 +86,8 @@ class InventoryMonitor:
         self.last_valid_inventory_download_size = 0
         self.inventory_downloads_without_change = 0
         self.last_inventory_download_size = 0
+
+        self.enable_inventory_delta_file = enable_inventory_delta_file
 
         self.firebase_client: FirebaseClient = (
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
@@ -325,6 +328,9 @@ class InventoryMonitor:
         return new_json
 
     def _write_inventory_delta_file(self) -> None:
+        if not self.enable_inventory_delta_file:
+            return
+
         new_json = self._df_to_real_json(self.new_inventory)
         last_json = self._df_to_real_json(self.last_inventory)
 
@@ -415,7 +421,10 @@ class InventoryMonitor:
         return True
 
     def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
-        log.print_normal(f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}")
+        if self.last_inventory is not None and self.new_inventory is not None:
+            log.print_normal(
+                f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}"
+            )
 
         if self.new_inventory is not None:
             self.last_inventory = self.new_inventory.copy()

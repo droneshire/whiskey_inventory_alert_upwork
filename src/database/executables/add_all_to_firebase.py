@@ -65,6 +65,7 @@ def main() -> None:
         log_dir=args.log_dir,
         credentials_file=get_credentials_file(),
         use_local_db=False,
+        enable_inventory_delta_file=False,
         dry_run=False,
         verbose=False,
     )

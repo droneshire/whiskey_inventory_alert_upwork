@@ -88,6 +88,7 @@ class InventoryManagementTest(unittest.TestCase):
             use_local_db=True,
             log_dir=self.test_dir,
             credentials_file="",
+            enable_inventory_delta_file=True,
             dry_run=False,
             verbose=False,
         )
