@@ -173,7 +173,7 @@ systemctl enable dropbox
 
 # install dropbox cli
 cd ~
-curl -LO https://www.dropbox.com/download?dl=packages/dropbox.py
+wget -P ~/ -O dropbox.py https://www.dropbox.com/download?dl=packages/dropbox.py
 chmod +x ~/dropbox.py
 ln -s /opt/dropbox ~/.dropbox-dist
 
