@@ -39,7 +39,7 @@ inventory_bot_prod:
 	$(RUN_PY) executables.monitor_inventory --wait-time 60
 
 inventory_bot_dev:
-	$(RUN_PY) executables.monitor_inventory --wait-time 10 --dry-run --ignore-time-window --log-level DEBUG
+	$(RUN_PY) executables.monitor_inventory --wait-time 10 --dry-run --ignore-time-window --log-level DEBUG --enable-diff-log
 
 reset_server:
 	$(RUN_PY) executables.reset_server
