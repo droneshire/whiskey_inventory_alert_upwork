@@ -16,6 +16,8 @@ class Items(T.TypedDict):
 
 class Inventory(T.TypedDict):
     items: T.List[Items]
+    inventory_change: int
+    min_hours_since_out_of_stock: int
 
 
 class Email(T.TypedDict):
@@ -68,7 +70,7 @@ NULL_CLIENT = Client(
         nextBillingAmount=0.0,
         hasPaid=False,
     ),
-    inventory=Inventory(items=[]),
+    inventory=Inventory(items=[], inventory_change=1, min_hours_since_out_of_stock=0),
     preferences=Preferences(
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),
