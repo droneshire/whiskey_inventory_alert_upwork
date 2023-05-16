@@ -17,6 +17,7 @@ class Item(Base):
     supplier = Column(types.String(100), nullable=True)
     supplier_allotment = Column(types.Integer, nullable=True)
     broker_name = Column(types.String(100), nullable=True)
+    out_of_stock_time = Column(types.DateTime(timezone=True), nullable=True)
     created_at = Column(types.DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
@@ -32,6 +33,7 @@ class ItemSchema(Schema):  # type: ignore
     supplier = fields.Str()
     supplier_allotment = fields.Int()
     broker_name = fields.Str()
+    out_of_stock_time = fields.DateTime()
     created_at = fields.DateTime()
 
     @post_load

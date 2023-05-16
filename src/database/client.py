@@ -1,3 +1,4 @@
+import datetime
 import os
 import time
 import typing as T
@@ -159,6 +160,7 @@ class ClientDb:
         supplier: str = None,
         supplier_allotment: int = None,
         broker_name: str = None,
+        out_of_stock_time: T.Optional[datetime.datetime] = None,
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:

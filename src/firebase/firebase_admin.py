@@ -12,7 +12,7 @@ from util import log
 
 
 class FirebaseAdmin:
-    TIME_BETWEEN_WATCHER_UPDATE = 60 * 30
+    TIME_BETWEEN_WATCHER_UPDATE = 60 * 45
 
     def __init__(self, credentials_file: str):
         self.credentials_file = credentials_file

@@ -125,15 +125,17 @@ class InventoryMonitor:
 
     def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
         # check and add item into db if not there already
+        inventory = int(item["Total Available"])
         ClientDb.add_or_update_item(
             item[self.INVENTORY_CODE_KEY],
             brand_name=item["Brand Name"],
-            total_available=int(item["Total Available"]),
+            total_available=inventory,
             size=item["Size"],
             cases_per_pallet=int(item["Cases Per Pallet"]),
             supplier=item["Supplier"],
             supplier_allotment=int(item["Supplier Allotment"]),
             broker_name=item["Broker Name"],
+            out_of_stock_time=None if inventory > 0 else datetime.datetime.utcnow(),
         )
 
     def _set_inventory_to_zero(self, nc_code: str) -> None:
