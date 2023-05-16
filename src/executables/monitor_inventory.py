@@ -48,7 +48,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Ignore the time window for sending SMS",
     )
-
+    parser.add_argument(
+        "--enable-diff-log",
+        action="store_true",
+        help="Enable logging of differences in inventory",
+    )
     return parser.parse_args()
 
 
@@ -109,7 +113,7 @@ def main() -> None:
         log_dir=args.log_dir,
         credentials_file=get_credentials_file(),
         use_local_db=args.use_local_db,
-        enable_inventory_delta_file=False,
+        enable_inventory_delta_file=args.enable_diff_log,
         dry_run=args.dry_run,
         verbose=args.verbose,
     )
