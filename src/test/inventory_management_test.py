@@ -115,7 +115,7 @@ class InventoryManagementTest(unittest.TestCase):
     ) -> ClientSchema:
         ClientDb.add_client(self.test_client_name, "test@gmail.com", self.test_num)
         for nc_code in nc_codes:
-            ClientDb.add_item_to_client(self.test_client_name, nc_code)
+            ClientDb.add_item_to_client_and_track(self.test_client_name, nc_code)
 
             if not track:
                 ClientDb.add_track_item(self.test_client_name, nc_code, False)
