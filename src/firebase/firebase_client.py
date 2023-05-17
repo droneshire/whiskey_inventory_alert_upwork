@@ -165,10 +165,15 @@ class FirebaseClient:
                 ClientDb.add_item_to_client(client, nc_code)
                 ClientDb.add_track_item(client, nc_code, is_tracking_in_firebase)
 
-            db_client["inventory"]["items"][nc_code]["name"] = items_schema[nc_code]["brand_name"]
-            db_client["inventory"]["items"][nc_code]["available"] = items_schema[nc_code][
-                "total_available"
-            ]
+            if nc_code not in items_schema:
+                ClientDb.add_or_update_item(nc_code)
+            else:
+                db_client["inventory"]["items"][nc_code]["name"] = items_schema[nc_code][
+                    "brand_name"
+                ]
+                db_client["inventory"]["items"][nc_code]["available"] = items_schema[nc_code][
+                    "total_available"
+                ]
 
         with ClientDb.client(client) as db:
             if db is not None:

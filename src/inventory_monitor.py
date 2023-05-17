@@ -174,7 +174,9 @@ class InventoryMonitor:
 
         self.firebase_client.check_and_maybe_handle_firebase_db_updates()
 
-    def check_client_inventory(self, client: ClientSchema) -> None:
+    def check_client_inventory(
+        self, client: ClientSchema, now: datetime.datetime = datetime.datetime.utcnow()
+    ) -> None:
         if self.verbose:
             log.print_bold(f"Checking {json.dumps(client, indent=4)}")
 
@@ -264,8 +266,8 @@ class InventoryMonitor:
                 continue
 
             if "out_of_stock_time" not in item_schema:
-                now = datetime.datetime.utcnow()
                 time_out_of_stock = now - item_schema["out_of_stock_time"]
+                time_out_of_stock_hours = time_out_of_stock.total_seconds() / 3600
 
                 if time_out_of_stock <= client["min_hours_since_out_of_stock"]:
                     log.print_warn(

@@ -115,7 +115,7 @@ class InventoryManagementTest(unittest.TestCase):
     ) -> ClientSchema:
         ClientDb.add_client(self.test_client_name, "test@gmail.com", self.test_num)
         for nc_code in nc_codes:
-            ClientDb.add_item_to_client_and_track(self.test_client_name, nc_code)
+            ClientDb.add_item_to_client(self.test_client_name, nc_code)
 
             if not track:
                 ClientDb.add_track_item(self.test_client_name, nc_code, False)
@@ -137,6 +137,23 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.monitor.update_inventory(self.after_csv)
         self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 1)
+
+    def test_out_of_stock_to_in_stock_with_min_out_of_stock_time(self):
+        client_schema = self._setup_client(["00009"], True, True)
+
+        client_schema["min_hours_since_out_of_stock"] = 10
+
+        test_now = datetime.datetime.utcnow() + datetime.timedelta(hours=0)
+
+        self.monitor.update_inventory(self.before_csv)
+        self.monitor.check_client_inventory(client_schema)
+
+        self.assertEqual(self.twilio_stub.num_sent, 0)
+
+        self.monitor.update_inventory(self.after_csv)
+        self.monitor.check_client_inventory(client_schema, now=test_now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
 
