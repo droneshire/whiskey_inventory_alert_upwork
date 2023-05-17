@@ -65,7 +65,7 @@ mkdir -p /etc/sysconfig
 echo "DROPBOX_USERS=\"`whoami`\"" >> /etc/sysconfig/dropbox
 
 ## Create ubuntu version of /etc/systemd/system/dropbox:
-cat <<EOT >> /etc/systemd/system/dropbox
+cat <<EOT > /etc/systemd/system/dropbox
 #!/bin/sh
 
 # To configure, add line with DROPBOX_USERS="user1 user2" to /etc/sysconfig/dropbox
@@ -148,7 +148,7 @@ esac
 EOT
 
 ## Modify /etc/systemd/system/dropbox.service:
-cat <<EOT >> /etc/systemd/system/dropbox.service
+cat <<EOT > /etc/systemd/system/dropbox.service
 [Unit]
 Description=Dropbox is a filesyncing sevice provided by dropbox.com. This service starts up the dropbox daemon.
 After=network.target syslog.target
@@ -185,7 +185,7 @@ wait_for_input
 mkdir -p $DROPBOX_DIR/logs
 
 if [ -z "$DROPBOX_DIR/.env" ]; then
-    cat <<EOT >> $DROPBOX_DIR/.env
+    cat <<EOT > $DROPBOX_DIR/.env
 DEFAULT_DB="inventory_manager.db"
 
 # Configure the Twilio SMS provider.
