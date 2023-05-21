@@ -57,10 +57,6 @@ tar xzfv /tmp/dropbox/dropbox.tar.gz --strip 1 -C /opt/dropbox
 
 wait_for_input
 
-curl -o /etc/init.d/dropbox https://gist.githubusercontent.com/thisismitch/6293d3f7f5fa37ca6eab/raw/2b326bf77368cbe5d01af21c623cd4dd75528c3d/dropbox
-curl -o /etc/systemd/system/dropbox.service https://gist.githubusercontent.com/thisismitch/6293d3f7f5fa37ca6eab/raw/99947e2ef986492fecbe1b7bfbaa303fefc42a62/dropbox.service
-sudo chmod +x /etc/systemd/system/dropbox.service /etc/init.d/dropbox
-
 mkdir -p /etc/sysconfig
 echo "DROPBOX_USERS=\"`whoami`\"" >> /etc/sysconfig/dropbox
 
@@ -100,7 +96,7 @@ start() {
 }
 
 status() {
-    for dbuser in $DROPBOX_pUSERS; do
+    for dbuser in $DROPBOX_USERS; do
         dbpid=`pgrep -u $dbuser dropbox | grep -v grep`
         if [ -z $dbpid ] ; then
             echo "dropboxd for USER $dbuser: not running."
