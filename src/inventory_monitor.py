@@ -265,7 +265,7 @@ class InventoryMonitor:
                 )
                 continue
 
-            if "out_of_stock_time" in item_schema and item_schema["out_of_stock_time"] is not None:
+            if False and "out_of_stock_time" in item_schema and item_schema["out_of_stock_time"] is not None:
                 time_out_of_stock = now - item_schema["out_of_stock_time"]
                 time_out_of_stock_hours = time_out_of_stock.total_seconds() / 3600
 
