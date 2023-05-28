@@ -72,7 +72,9 @@ class YoungsvilleAbcInventory:
         )
 
     def get_inventory(self) -> T.Dict[str, T.Dict[str, int]]:
-        response = self.session.get("https://shopncabc.com/ItemList.aspx", headers=HEADERS["inventory"])
+        response = self.session.get(
+            "https://shopncabc.com/ItemList.aspx", headers=HEADERS["inventory"]
+        )
         html_content = response.text
         soup = BeautifulSoup(html_content, "html.parser")
         rows = soup.find_all("tr")
