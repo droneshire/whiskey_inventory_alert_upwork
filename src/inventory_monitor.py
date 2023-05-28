@@ -126,7 +126,12 @@ class InventoryMonitor:
         log.print_normal(f"Time till inventory update: {time_till_next_update}")
         return time_since_last_update > self.time_between_inventory_checks
 
-    def _update_local_db_item(self, client_name: str, item: pd.core.frame.DataFrame) -> None:
+    def _update_local_db_item(
+        self,
+        client_name: str,
+        item: pd.core.frame.DataFrame,
+        now: datetime.datetime = datetime.datetime.utcnow(),
+    ) -> None:
         # check and add item into db if not there already
         inventory = int(item["Total Available"])
         ClientDb.add_or_update_item(
@@ -138,7 +143,7 @@ class InventoryMonitor:
             supplier=item["Supplier"],
             supplier_allotment=int(item["Supplier Allotment"]),
             broker_name=item["Broker Name"],
-            out_of_stock_time=None if inventory > 0 else datetime.datetime.utcnow(),
+            out_of_stock_time=None if inventory > 0 else now,
         )
 
     def _set_inventory_to_zero(self, nc_code: str) -> None:
@@ -173,6 +178,38 @@ class InventoryMonitor:
                 self.firebase_client.check_and_maybe_update_to_firebase(id, item["id"])
 
         self.firebase_client.check_and_maybe_handle_firebase_db_updates()
+
+    def _check_outside_of_out_of_stock_window(
+        self,
+        client_time_out_of_stock_hours: int,
+        nc_code: int,
+        now: datetime.datetime = datetime.datetime.utcnow(),
+    ) -> bool:
+        if client_time_out_of_stock_hours == 0:
+            return False
+
+        with ClientDb.item(nc_code) as db:
+            if db is None:
+                return False
+
+            out_of_stock_time = db.out_of_stock_time
+
+        if out_of_stock_time is None:
+            return False
+
+        time_out_of_stock = now - out_of_stock_time
+        time_out_of_stock_hours = time_out_of_stock.total_seconds() / 3600
+
+        log.print_bright(
+            f"{nc_code} has been out of stock for {time_out_of_stock_hours}h {client_time_out_of_stock_hours}h"
+        )
+        if time_out_of_stock_hours <= client_time_out_of_stock_hours:
+            log.print_warn(
+                f"{nc_code} has not been out of stock long enough: {time_out_of_stock_hours}"
+            )
+            return True
+
+        return False
 
     def check_client_inventory(
         self, client: ClientSchema, now: datetime.datetime = datetime.datetime.utcnow()
@@ -209,7 +246,7 @@ class InventoryMonitor:
                 continue
 
             item_df: pd.core.frame.DataFrame = self._get_item_from_inventory(
-                item_schema, self.new_inventory
+                item_schema["id"], self.new_inventory
             )
 
             if item_df is None:
@@ -217,7 +254,7 @@ class InventoryMonitor:
                 self._set_inventory_to_zero(nc_code)
                 continue
 
-            self._update_local_db_item(client["id"], item_df)
+            self._update_local_db_item(client["id"], item_df, now)
 
             if item_df["Total Available"] == 0:
                 if self.verbose:
@@ -225,7 +262,7 @@ class InventoryMonitor:
                 continue
 
             previous_item: pd.core.frame.DataFrame = self._get_item_from_inventory(
-                item_schema, self.last_inventory
+                item_schema["id"], self.last_inventory
             )
 
             if previous_item is None:
@@ -265,15 +302,11 @@ class InventoryMonitor:
                 )
                 continue
 
-            if False and "out_of_stock_time" in item_schema and item_schema["out_of_stock_time"] is not None:
-                time_out_of_stock = now - item_schema["out_of_stock_time"]
-                time_out_of_stock_hours = time_out_of_stock.total_seconds() / 3600
-
-                if time_out_of_stock <= client["min_hours_since_out_of_stock"]:
-                    log.print_warn(
-                        f"{nc_code} has not been out of stock long enough: {out_of_stock_time}"
-                    )
-                    continue
+            if self._check_outside_of_out_of_stock_window(
+                client["min_hours_since_out_of_stock"], nc_code, now
+            ):
+                log.print_normal_arrow(f"{nc_code} is inside of out of stock window")
+                continue
 
             if self.skip_alerts:
                 continue
@@ -368,15 +401,13 @@ class InventoryMonitor:
         log.print_normal(f"Changes in inventory:\n{diff_json}")
 
     def _get_item_from_inventory(
-        self, item: ItemSchema, dataframe: pd.core.frame.DataFrame
+        self, nc_code: int, dataframe: pd.core.frame.DataFrame
     ) -> T.Optional[pd.core.frame.DataFrame]:
         if dataframe is None or dataframe.empty:
             log.print_warn("No inventory loaded")
             return None
 
         inventory_codes = dataframe[self.INVENTORY_CODE_KEY]
-
-        nc_code = item["id"]
 
         matches: pd.core.frame.DataFrame = dataframe[inventory_codes == nc_code]
 
@@ -432,7 +463,9 @@ class InventoryMonitor:
         self.inventory_downloads_without_change = 0
         return True
 
-    def update_inventory(self, download_url: str) -> pd.core.frame.DataFrame:
+    def update_inventory(
+        self, download_url: str, now: datetime.datetime = datetime.datetime.utcnow()
+    ) -> pd.core.frame.DataFrame:
         if self.last_inventory is not None and self.new_inventory is not None:
             log.print_normal(
                 f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}"
@@ -474,7 +507,7 @@ class InventoryMonitor:
         self.last_inventory_update_time = time.time()
 
         for _, item in self.new_inventory.iterrows():
-            self._update_local_db_item("", item)
+            self._update_local_db_item("", item, now)
 
         return self.new_inventory
 

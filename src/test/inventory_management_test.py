@@ -147,12 +147,13 @@ class InventoryManagementTest(unittest.TestCase):
 
         test_now = datetime.datetime.utcnow() + datetime.timedelta(hours=0)
 
-        self.monitor.update_inventory(self.before_csv)
-        self.monitor.check_client_inventory(client_schema)
+        self.monitor.update_inventory(self.before_csv, now=test_now)
+        self.monitor.check_client_inventory(client_schema, now=test_now)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
-        self.monitor.update_inventory(self.after_csv)
+        test_now += datetime.timedelta(hours=11)
+        self.monitor.update_inventory(self.after_csv, now=test_now)
         self.monitor.check_client_inventory(client_schema, now=test_now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
