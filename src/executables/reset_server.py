@@ -5,7 +5,7 @@ for a boolean value of True. If the value is True,
 then the script will reset the server by killing
 any outstanding bot processes and restarting them.
 """
-
+import argparse
 import os
 import subprocess
 import sys
@@ -51,6 +51,11 @@ def reset_server() -> None:
 def main() -> None:
     dotenv.load_dotenv(".env")
 
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    log_dir = log.get_logging_dir("inventory_manager")
+    parser.add_argument("--log-dir", default=log_dir)
+
     pidfile = os.environ.get("RESET_PIDFILE", "reset_server.pid")
 
     with open(pidfile, "w") as outfile:
@@ -65,6 +70,7 @@ def main() -> None:
                 log.print_bright("Reset signal detected.")
                 reset_server()
                 firebase_server.set_reset(reset=False)
+                log.clean_log_dir(log_dir)
                 log.print_ok_arrow("Bot reset complete.")
             firebase_server.refresh()
             wait.wait(TIME_BETWEEN_CHECKS)
