@@ -75,6 +75,7 @@ class MultiHandler(logging.Handler):
         except:
             self.handleError(record)
 
+
 def clean_log_dir(log_dir: str) -> None:
     """Clean the log directory by removing all files and directories in the directory."""
     for filename in os.listdir(log_dir):
@@ -86,6 +87,7 @@ def clean_log_dir(log_dir: str) -> None:
                 shutil.rmtree(file_path)
         except Exception as e:
             print(f"Failed to delete {file_path}. Reason: {e}")
+
 
 def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
     util_dir = os.path.dirname(os.path.realpath(__file__))
