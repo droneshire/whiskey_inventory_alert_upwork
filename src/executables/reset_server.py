@@ -70,7 +70,7 @@ def main() -> None:
                 log.print_bright("Reset signal detected.")
                 reset_server()
                 firebase_server.set_reset(reset=False)
-                log.clean_log_dir(log_dir)
+                log.clean_log_dir(os.path.join(log_dir, "logs"))
                 log.print_ok_arrow("Bot reset complete.")
             firebase_server.refresh()
             wait.wait(TIME_BETWEEN_CHECKS)
