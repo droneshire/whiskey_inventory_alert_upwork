@@ -82,11 +82,15 @@ def main() -> None:
 
     try:
         while True:
-            if firebase_server.is_reset or is_process_killed():
+            if firebase_server.is_reset:
                 log.print_bright("Reset signal detected.")
+                log.clean_log_dir(os.path.join(log_dir, "logs"))
                 reset_server()
                 firebase_server.set_reset(reset=False)
+                log.print_ok_arrow("Bot reset complete.")
+            elif is_process_killed():
                 log.clean_log_dir(os.path.join(log_dir, "logs"))
+                reset_server()
                 log.print_ok_arrow("Bot reset complete.")
             firebase_server.refresh()
             wait.wait(TIME_BETWEEN_CHECKS)
