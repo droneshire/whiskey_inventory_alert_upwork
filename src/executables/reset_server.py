@@ -33,6 +33,22 @@ def try_to_kill_process() -> None:
         log.print_normal("No process to kill.")
 
 
+def is_process_killed() -> bool:
+    pidfile = os.environ.get("BOT_PIDFILE", "monitor_inventory.pid")
+    try:
+        with open(pidfile, "r") as infile:
+            pid = int(infile.read())
+            if not os.path.exists(f"/proc/{pid}"):
+                log.print_ok_arrow(f"Process with pid {pid} is killed.")
+                return True
+
+            log.print_normal(f"Process with pid {pid} is still running.")
+            return False
+    except:
+        log.print_normal("No process running.")
+        return True
+
+
 def reset_server() -> None:
     """Reset the server by killing all bot processes and restarting them."""
     log.print_fail("Resetting server...")
@@ -66,7 +82,7 @@ def main() -> None:
 
     try:
         while True:
-            if firebase_server.is_reset:
+            if firebase_server.is_reset or is_process_killed():
                 log.print_bright("Reset signal detected.")
                 reset_server()
                 firebase_server.set_reset(reset=False)
