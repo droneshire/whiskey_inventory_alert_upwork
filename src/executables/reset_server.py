@@ -39,13 +39,11 @@ def is_process_killed() -> bool:
         with open(pidfile, "r") as infile:
             pid = int(infile.read())
             if not os.path.exists(f"/proc/{pid}"):
-                log.print_ok_arrow(f"Process with pid {pid} is killed.")
+                log.print_fail(f"Process with pid {pid} is killed.")
                 return True
-
-            log.print_normal(f"Process with pid {pid} is still running.")
             return False
     except:
-        log.print_normal("No process running.")
+        log.print_fail("No process running.")
         return True
 
 
