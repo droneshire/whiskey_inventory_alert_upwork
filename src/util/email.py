@@ -11,6 +11,11 @@ class Email(T.TypedDict):
     quiet: bool
 
 
+def is_valid_email(email: str) -> bool:
+    regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+    return re.fullmatch(regex, email) is not None
+
+
 def get_email_accounts_from_password(
     encrypt_password: str,
     encrypted_emails: T.List[T.Dict[str, str]],
