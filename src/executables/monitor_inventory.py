@@ -58,6 +58,9 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Rotate the logs and tar them up",
     )
+    parser.add_argument(
+        "--enable-alarm", action="store_true", help="Enable sms alerts when crashes occur"
+    )
     return parser.parse_args()
 
 
@@ -141,7 +144,8 @@ def main() -> None:
             message += "Inventory alert bot has crashed!\n"
             message += "Please restart the backend server\n"
             log.print_fail(f"{message}")
-            twilio_util.send_sms(os.environ.get("ADMIN_PHONE", ""), message)
+            if args.enable_alarm:
+                twilio_util.send_sms(os.environ.get("ADMIN_PHONE", ""), message)
             raise e
 
 

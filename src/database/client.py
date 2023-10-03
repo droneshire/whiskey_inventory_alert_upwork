@@ -104,7 +104,7 @@ class ClientDb:
                 .first()
             )
             if tracking_item is not None:
-                tracking_item.delete()
+                db.delete(tracking_item)
 
     @staticmethod
     def delete_client(name: str, verbose: bool = False) -> None:
@@ -141,7 +141,7 @@ class ClientDb:
             db.add(client)
 
     @staticmethod
-    def delete_item(name: str, nc_code: str, verbose: bool = False) -> None:
+    def delete_item(nc_code: str, verbose: bool = False) -> None:
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.id == nc_code).first()
             if item is None:

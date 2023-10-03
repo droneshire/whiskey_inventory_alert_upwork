@@ -146,6 +146,10 @@ class FirebaseClient:
             phone_number = "+1" + phone_number
 
         with ClientDb.client(client) as db:
+            if not db:
+                self._maybe_upload_db_cache_to_firestore(client, old_db_client, db_client)
+                return
+
             client_schema = ClientSchema().dump(db)
 
         items_schema = ClientDb.all_items()
@@ -176,49 +180,48 @@ class FirebaseClient:
                 ]
 
         with ClientDb.client(client) as db:
-            if db is not None:
-                db.email = email
-                db.phone_number = phone_number
-                db.threshold_inventory = safe_get(
-                    db_client, "inventory.inventoryChange".split("."), 0
-                )
-                db.min_hours_since_out_of_stock = safe_get(
-                    db_client, "inventory.min_hours_since_out_of_stock".split("."), 0
-                )
-                db.phone_alerts = safe_get(
-                    db_client, "preferences.notifications.sms.updatesEnabled".split("."), False
-                )
-                db.email_alerts = safe_get(
-                    db_client, "preferences.notifications.email.updatesEnabled".split("."), False
-                )
-                db.alert_time_zone = safe_get(
-                    db_client, "preferences.notifications.sms.alertTimeZone.value".split("."), ""
-                )
-                db.alert_range_enabled: T.List[datetime.datetime] = safe_get(
-                    db_client, "preferences.notifications.sms.alertWindowEnabled".split("."), False
-                )
-                alert_range: T.List[datetime.datetime] = safe_get(
-                    db_client, "preferences.notifications.sms.alertTimeRange".split("."), []
-                )
-                db.has_paid = safe_get(db_client, "accounting.hasPaid".split("."), False)
-                db.next_billing_amount = safe_get(
-                    db_client, "accounting.nextBillingAmount".split("."), 0.0
-                )
-                if len(alert_range) == 2:
-                    db.alert_time_range_start = alert_range[0]
-                    db.alert_time_range_end = alert_range[1]
+            db.email = email
+            db.phone_number = phone_number
+            db.threshold_inventory = safe_get(db_client, "inventory.inventoryChange".split("."), 0)
+            db.min_hours_since_out_of_stock = safe_get(
+                db_client, "inventory.min_hours_since_out_of_stock".split("."), 0
+            )
+            db.phone_alerts = safe_get(
+                db_client, "preferences.notifications.sms.updatesEnabled".split("."), False
+            )
+            db.email_alerts = safe_get(
+                db_client, "preferences.notifications.email.updatesEnabled".split("."), False
+            )
+            db.alert_time_zone = safe_get(
+                db_client, "preferences.notifications.sms.alertTimeZone.value".split("."), ""
+            )
+            db.alert_range_enabled: T.List[datetime.datetime] = safe_get(
+                db_client, "preferences.notifications.sms.alertWindowEnabled".split("."), False
+            )
+            alert_range: T.List[datetime.datetime] = safe_get(
+                db_client, "preferences.notifications.sms.alertTimeRange".split("."), []
+            )
+            db.has_paid = safe_get(db_client, "accounting.hasPaid".split("."), False)
+            db.next_billing_amount = safe_get(
+                db_client, "accounting.nextBillingAmount".split("."), 0.0
+            )
+            if len(alert_range) == 2:
+                db.alert_time_range_start = alert_range[0]
+                db.alert_time_range_end = alert_range[1]
 
-                nc_codes = [i.id for i in db.items]
+            nc_codes = [i.id for i in db.items]
 
-            for tracking_item in db.tracked_items:
-                if tracking_item.nc_code not in db_client["inventory"]["items"]:
-                    log.print_warn(f"Deleting tracking {nc_code} from client {client} in database")
-                    ClientDb.delete_track_item(client, tracking_item.nc_code)
+            tracked_nc_codes = [i.nc_code for i in db.tracked_items]
 
-            for nc_code in nc_codes:
-                if nc_code not in db_client["inventory"]["items"]:
-                    log.print_warn(f"Deleting {nc_code} from client {client} in database")
-                    db.items.remove(nc_code)
+        for nc_code in nc_codes:
+            if nc_code not in db_client["inventory"]["items"]:
+                log.print_warn(f"Deleting {nc_code} from client {client} in database")
+                ClientDb.delete_item(nc_code)
+
+        for nc_code in tracked_nc_codes:
+            if nc_code not in db_client["inventory"]["items"]:
+                log.print_warn(f"Deleting tracking {nc_code} from client {client} in database")
+                ClientDb.delete_track_item(client, nc_code)
 
         self._maybe_upload_db_cache_to_firestore(client, old_db_client, db_client)
 
