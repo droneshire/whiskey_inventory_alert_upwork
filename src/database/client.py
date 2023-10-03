@@ -112,11 +112,9 @@ class ClientDb:
             client = db.query(Client).filter(Client.id == name).first()
             if client is None:
                 return
-
-            if db.items.get(nc_code) is None:
+            if nc_code not in client.items:
                 return
-
-            db.items.remove(nc_code)
+            client.items.remove(nc_code)
 
     @staticmethod
     def delete_client(name: str, verbose: bool = False) -> None:
