@@ -120,8 +120,10 @@ class ClientDb:
                 .filter(ItemAssociationTable.item_id == nc_code)
                 .first()
             )
-            if item is not None:
-                db.delete(item)
+            if item is None:
+                log.print_warn(f"Not deleting {nc_code}, it's not in db")
+                return
+            db.delete(item)
 
     @staticmethod
     def delete_client(name: str, verbose: bool = False) -> None:
