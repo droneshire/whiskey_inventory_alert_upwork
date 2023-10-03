@@ -110,14 +110,10 @@ class ClientDb:
     @staticmethod
     def delete_item_association(name: str, nc_code: str) -> None:
         with ManagedSession() as db:
-            client = db.query(Client).filter(Client.id == name).first()
-            if client is None:
-                log.print_warn(f"Not deleting {nc_code}, {name} not in db")
-                return
             item = (
                 db.query(ItemAssociationTable)
-                .filter(ItemAssociationTable.client_id == client.id)
-                .filter(ItemAssociationTable.item_id == nc_code)
+                .filter(ItemAssociationTable.c.client_id == name)
+                .filter(ItemAssociationTable.c.item_id == nc_code)
                 .first()
             )
             if item is None:
