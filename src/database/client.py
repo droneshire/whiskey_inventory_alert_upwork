@@ -117,7 +117,12 @@ class ClientDb:
             if nc_code not in [i.id for i in client.items]:
                 log.print_warn(f"Not deleting {nc_code}, it's not in client items")
                 return
-            db.delete(item)
+
+            item = db.query(Item).filter(Item.id == nc_code).first()
+            if item is None:
+                log.print_warn(f"Not deleting {nc_code}, it's not in items db")
+                return
+            client.items.remove(item)
 
     @staticmethod
     def delete_client(name: str, verbose: bool = False) -> None:
