@@ -107,6 +107,18 @@ class ClientDb:
                 db.delete(tracking_item)
 
     @staticmethod
+    def delete_item_association(name: str, nc_code: str) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == name).first()
+            if client is None:
+                return
+
+            if db.items.get(nc_code) is None:
+                return
+
+            db.items.remove(nc_code)
+
+    @staticmethod
     def delete_client(name: str, verbose: bool = False) -> None:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()

@@ -216,7 +216,7 @@ class FirebaseClient:
         for nc_code in nc_codes:
             if nc_code not in db_client["inventory"]["items"]:
                 log.print_warn(f"Deleting {nc_code} from client {client} in database")
-                ClientDb.delete_item(nc_code)
+                ClientDb.delete_item_association(nc_code)
 
         for nc_code in tracked_nc_codes:
             if nc_code not in db_client["inventory"]["items"]:
