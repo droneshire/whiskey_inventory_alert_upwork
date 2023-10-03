@@ -111,8 +111,10 @@ class ClientDb:
         with ManagedSession() as db:
             client = db.query(Client).filter(Client.id == name).first()
             if client is None:
+                log.print_warn(f"Not deleting {nc_code}, {name} not in db")
                 return
             if nc_code not in client.items:
+                log.print_warn(f"Not deleting {nc_code}, it's not in db")
                 return
             client.items.remove(nc_code)
 
