@@ -115,7 +115,7 @@ class ClientDb:
                 log.print_warn(f"Not deleting {nc_code}, {name} not in db")
                 return
             if nc_code not in [i.id for i in client.items]:
-                log.print_warn(f"Not deleting {nc_code}, it's not in db")
+                log.print_warn(f"Not deleting {nc_code}, it's not in client items")
                 return
             db.delete(item)
 
