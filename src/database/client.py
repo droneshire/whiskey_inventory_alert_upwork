@@ -10,6 +10,7 @@ from sqlalchemy.sql import func
 from database.connect import ManagedSession
 from database.models.client import Client, TrackingItem
 from database.models.item import Item, ItemSchema
+from database.models.item_association import ItemAssociationTable
 from util import log
 
 dotenv.load_dotenv(".env")
@@ -113,10 +114,14 @@ class ClientDb:
             if client is None:
                 log.print_warn(f"Not deleting {nc_code}, {name} not in db")
                 return
-            if nc_code not in client.items:
-                log.print_warn(f"Not deleting {nc_code}, it's not in db")
-                return
-            client.items.remove(nc_code)
+            item = (
+                db.query(ItemAssociationTable)
+                .filter(ItemAssociationTable.client_id == client.id)
+                .filter(ItemAssociationTable.item_id == nc_code)
+                .first()
+            )
+            if item is not None:
+                db.delete(item)
 
     @staticmethod
     def delete_client(name: str, verbose: bool = False) -> None:
