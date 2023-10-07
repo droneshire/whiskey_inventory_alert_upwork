@@ -539,6 +539,7 @@ class InventoryMonitor:
                 brand_name = item["Brand Name"]
                 new_items.append((nc_code, brand_name, inventory_available))
 
+        log.print_bold(f"Found {len(new_items)} new items")
         return new_items
 
     def _update_sms_time_window(self, name: str) -> None:
