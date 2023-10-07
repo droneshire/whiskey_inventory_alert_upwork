@@ -182,6 +182,9 @@ class FirebaseClient:
         with ClientDb.client(client) as db:
             db.email = email
             db.phone_number = phone_number
+            db.update_on_new_data = safe_get(
+                db_client, "preferences.updateOnNewData".split("."), False
+            )
             db.threshold_inventory = safe_get(db_client, "inventory.inventoryChange".split("."), 0)
             db.min_hours_since_out_of_stock = safe_get(
                 db_client, "inventory.min_hours_since_out_of_stock".split("."), 0

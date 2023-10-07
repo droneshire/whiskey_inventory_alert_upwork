@@ -46,6 +46,7 @@ class Notifications(T.TypedDict):
 
 
 class Preferences(T.TypedDict):
+    updateOnNewData: bool
     notifications: Notifications
 
 
@@ -71,6 +72,7 @@ NULL_CLIENT = Client(
     ),
     inventory=Inventory(items=[], inventory_change=1, min_hours_since_out_of_stock=0),
     preferences=Preferences(
+        updateOnNewData=False,
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),
             sms=Sms(
@@ -86,6 +88,6 @@ NULL_CLIENT = Client(
                     value="America/Los_Angeles",
                 ),
             ),
-        )
+        ),
     ),
 )

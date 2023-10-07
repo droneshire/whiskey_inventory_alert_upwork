@@ -131,10 +131,10 @@ class InventoryMonitor:
         client_name: str,
         item: pd.core.frame.DataFrame,
         now: datetime.datetime = datetime.datetime.utcnow(),
-    ) -> None:
-        # check and add item into db if not there already
+    ) -> bool:
+        # check and add item into db if not there already, returns true if it is a new item
         inventory = int(item["Total Available"])
-        ClientDb.add_or_update_item(
+        return ClientDb.add_or_update_item(
             item[self.INVENTORY_CODE_KEY],
             brand_name=item["Brand Name"],
             total_available=inventory,
@@ -210,6 +210,25 @@ class InventoryMonitor:
             return True
 
         return False
+
+    def check_client_new_inventory(
+        self, client: ClientSchema, new_items: T.List[str] = None
+    ) -> None:
+        if self.verbose:
+            log.print_bold(f"Checking new inventory")
+
+        should_update_new_data = client["update_on_new_data"]
+
+        if not should_update_new_data:
+            log.print_normal_arrow("Not checking new inventory because client has disabled it")
+            return
+
+        if new_items is None:
+            log.print_normal_arrow("No new items to check")
+            return
+
+        items_to_update = [i for i in new_items if i not in client["items"]]
+        self._maybe_send_alerts(client, new_items, is_new_inventory=True)
 
     def check_client_inventory(
         self, client: ClientSchema, now: datetime.datetime = datetime.datetime.utcnow()
@@ -313,7 +332,12 @@ class InventoryMonitor:
 
             items_to_update.append((nc_code, brand_name, item_df["Total Available"]))
 
-        message = f"NC ABC Inventory Alert\n"
+        self._maybe_send_alerts(client, items_to_update)
+
+    def _maybe_send_alerts(
+        self, client: ClientSchema, items_to_update: T.List[T.Tuple], is_new_inventory: bool = False
+    ) -> None:
+        message = "NC ABC Inventory Alert\n" if is_new_inventory else "NC ABC New Item Alert\n"
 
         for info in items_to_update:
             nc_code, brand_name, total_available = info
@@ -465,7 +489,7 @@ class InventoryMonitor:
 
     def update_inventory(
         self, download_url: str, now: datetime.datetime = datetime.datetime.utcnow()
-    ) -> pd.core.frame.DataFrame:
+    ) -> T.List[str]:
         if self.last_inventory is not None and self.new_inventory is not None:
             log.print_normal(
                 f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}"
@@ -506,10 +530,13 @@ class InventoryMonitor:
         self._write_inventory_delta_file()
         self.last_inventory_update_time = time.time()
 
+        new_items: T.List[str] = []
         for _, item in self.new_inventory.iterrows():
-            self._update_local_db_item("", item, now)
+            is_new = self._update_local_db_item("", item, now)
+            if is_new:
+                new_items.append(item[self.INVENTORY_CODE_KEY])
 
-        return self.new_inventory
+        return new_items
 
     def _update_sms_time_window(self, name: str) -> None:
         with ClientDb.client(name) as db:
@@ -530,7 +557,7 @@ class InventoryMonitor:
             else:
                 log.print_bright(f"Client {name} does not have a time window set")
 
-    def _check_inventory(self) -> None:
+    def _check_inventory(self, new_items: T.List[str]) -> None:
         self._update_cache_from_local_db()
 
         if not self.clients:
@@ -542,6 +569,7 @@ class InventoryMonitor:
             log.print_bold(f"Checking inventory for {name}...")
             self._update_sms_time_window(name)
             self.check_client_inventory(client)
+            self.check_client_new_inventory(client, new_items)
 
         log.print_bold(f"{'─' * 80}")
 
@@ -556,8 +584,8 @@ class InventoryMonitor:
     def run(self) -> None:
         self.firebase_client.health_ping()
 
-        self.update_inventory(self.download_url)
+        new_items = self.update_inventory(self.download_url)
 
-        self._check_inventory()
+        self._check_inventory(new_items)
 
         wait.wait(self.WAIT_TIME)

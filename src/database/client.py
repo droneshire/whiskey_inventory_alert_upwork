@@ -180,7 +180,8 @@ class ClientDb:
         broker_name: str = None,
         out_of_stock_time: T.Optional[datetime.datetime] = None,
         verbose: bool = False,
-    ) -> None:
+    ) -> bool:
+        is_new = False
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.id == nc_code).first()
 
@@ -189,6 +190,7 @@ class ClientDb:
                     id=nc_code,
                 )
                 log.print_ok_arrow(f"Created item [{nc_code}]")
+                is_new = True
             elif verbose:
                 log.print_ok_arrow(f"Updated item [{nc_code}]")
 
@@ -210,6 +212,8 @@ class ClientDb:
                 item.out_of_stock_time = out_of_stock_time
 
             db.add(item)
+
+        return is_new
 
     @staticmethod
     def add_item_to_client(client: str, nc_code: str) -> None:
