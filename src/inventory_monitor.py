@@ -212,7 +212,7 @@ class InventoryMonitor:
         return False
 
     def check_client_new_inventory(
-        self, client: ClientSchema, new_items: T.List[str] = None
+        self, client: ClientSchema, new_items: T.List[T.Tuple[str, str, int]] = None
     ) -> None:
         if self.verbose:
             log.print_bold(f"Checking new inventory")
@@ -489,7 +489,7 @@ class InventoryMonitor:
 
     def update_inventory(
         self, download_url: str, now: datetime.datetime = datetime.datetime.utcnow()
-    ) -> T.List[str]:
+    ) -> T.List[T.Tuple[str, str, int]]:
         if self.last_inventory is not None and self.new_inventory is not None:
             log.print_normal(
                 f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}"
@@ -534,7 +534,10 @@ class InventoryMonitor:
         for _, item in self.new_inventory.iterrows():
             is_new = self._update_local_db_item("", item, now)
             if is_new:
-                new_items.append(item[self.INVENTORY_CODE_KEY])
+                inventory_available = int(item["Total Available"])
+                nc_code = item[self.INVENTORY_CODE_KEY]
+                brand_name = item["Brand Name"]
+                new_items.append((nc_code, brand_name, inventory_available))
 
         return new_items
 
@@ -557,7 +560,7 @@ class InventoryMonitor:
             else:
                 log.print_bright(f"Client {name} does not have a time window set")
 
-    def _check_inventory(self, new_items: T.List[str]) -> None:
+    def _check_inventory(self, new_items: T.List[T.Tuple[str, str, int]]) -> None:
         self._update_cache_from_local_db()
 
         if not self.clients:
