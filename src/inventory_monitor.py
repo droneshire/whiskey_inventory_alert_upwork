@@ -14,6 +14,7 @@ from database.client import ClientDb
 from database.models.client import Client, ClientSchema
 from database.models.item import ItemSchema
 from firebase.firebase_client import FirebaseClient
+from headers import HEADERS
 from util import email, log, wait, web2_client
 from util.file_util import make_sure_path_exists
 from util.format import get_pretty_seconds
@@ -506,7 +507,7 @@ class InventoryMonitor:
                 log.print_bold(f"Downloading inventory from {download_url}...")
                 try:
                     self.web.url_download(
-                        download_url, csv_file.name, self.download_key, timeout=30.0
+                        download_url, csv_file.name, headers=HEADERS, timeout=30.0
                     )
                 except Exception as e:
                     log.print_fail(f"Error downloading inventory: {e}")

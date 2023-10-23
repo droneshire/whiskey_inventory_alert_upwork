@@ -78,9 +78,10 @@ class Web2Client:
         self,
         url: str,
         file_path: str,
-        data: str,
-        headers: T.Dict[str, T.Any] = {},
-        params: T.Dict[str, T.Any] = {},
+        data: T.Optional[str] = None,
+        headers: T.Dict[str, T.Any] = None,
+        params: T.Dict[str, T.Any] = None,
+        cookies: T.Dict[str, T.Any] = None,
         timeout: float = 5.0,
     ) -> None:
         if self.dry_run:
@@ -93,6 +94,7 @@ class Web2Client:
                 data=data,
                 params=params,
                 headers=headers,
+                cookies=cookies,
                 timeout=timeout,
                 stream=True,
                 allow_redirects=True,
