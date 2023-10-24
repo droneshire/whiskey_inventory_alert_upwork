@@ -20,7 +20,7 @@ from util.file_util import make_sure_path_exists
 from util.format import get_pretty_seconds
 from util.twilio_util import TwilioUtil
 
-STOCK_EMOJI = "\U0001F37A"
+STOCK_EMOJI = "\U0001F943"
 
 
 class InventoryMonitor:
