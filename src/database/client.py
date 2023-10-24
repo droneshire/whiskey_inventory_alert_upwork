@@ -158,7 +158,7 @@ class ClientDb:
             phone_number_objects = []
 
             for phone_number in phone_numbers:
-                phone = PhoneNumber(number="123-456-7890")
+                phone = PhoneNumber(number=phone_number)
                 phone_number_objects.append(phone)
 
             client = Client(
