@@ -116,8 +116,6 @@ def main() -> None:
     email_accounts = get_email_accounts()
 
     monitor: InventoryMonitor = InventoryMonitor(
-        download_url=os.environ.get("INVENTORY_DOWNLOAD_URL", ""),
-        download_key=os.environ.get("INVENTORY_DOWNLOAD_KEY", ""),
         twilio_util=twilio_util,
         admin_email=email_accounts[0],
         log_dir=args.log_dir,

@@ -105,6 +105,6 @@ class Web2Client:
                         f.write(chunk)
         except KeyboardInterrupt:
             raise
-        except:
-            log.format_fail(f"Failed to download {url} to {file_path}")
+        except Exception as e:
+            log.format_fail(f"Failed to download {url} to {file_path}: {e}")
             return

@@ -58,8 +58,6 @@ def main() -> None:
     init_database(args.log_dir, DEFAULT_DB, Client, args.force_update)
 
     monitor: InventoryMonitor = InventoryMonitor(
-        download_url=os.environ.get("INVENTORY_DOWNLOAD_URL", ""),
-        download_key=os.environ.get("INVENTORY_DOWNLOAD_KEY", ""),
         twilio_util=None,
         admin_email=None,
         log_dir=args.log_dir,
@@ -71,7 +69,7 @@ def main() -> None:
     )
 
     monitor.init()
-    inventory_df = monitor.update_inventory(os.environ.get("INVENTORY_DOWNLOAD_URL", ""))
+    inventory_df = monitor.update_inventory(InventoryMonitor.DOWNLOAD_URL)
 
     if inventory_df.empty:
         log.print_fail("No inventory to use!")

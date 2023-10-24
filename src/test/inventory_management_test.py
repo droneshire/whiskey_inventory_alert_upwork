@@ -78,8 +78,6 @@ class InventoryManagementTest(unittest.TestCase):
         shutil.copyfile(self.before_csv, self.temp_csv_file.name)
 
         self.monitor = InventoryMonitor(
-            download_url="",
-            download_key="",
             twilio_util=self.twilio_stub,
             admin_email=self.email,
             inventory_csv_file=self.temp_csv_file.name,
@@ -126,6 +124,13 @@ class InventoryManagementTest(unittest.TestCase):
             client_schema = ClientSchema().dump(client)
 
         return client_schema
+
+    def can_download_file_test(self):
+        inventory = self.monitor.update_inventory(
+            download_url=self.monitor.DOWNLOAD_URL, skip_db_add=True
+        )
+        self.assertTrue(inventory is not None)
+        self.assertTrue(len(inventory) > 0)
 
     def test_out_of_stock_to_in_stock(self):
         client_schema = self._setup_client(["00009"], True, True)

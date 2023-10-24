@@ -24,6 +24,9 @@ STOCK_EMOJI = "\U0001F37A"
 
 
 class InventoryMonitor:
+    DOWNLOAD_URL = "https://abc2.nc.gov/StoresBoards/ExportData"
+    DOWNLOAD_KEY = ""
+
     TIME_BETWEEN_INVENTORY_CHECKS = {
         "prod": 60 * 5,
         "test": 30,
@@ -41,8 +44,6 @@ class InventoryMonitor:
 
     def __init__(
         self,
-        download_url: str,
-        download_key: str,
         twilio_util: T.Optional[TwilioUtil],
         admin_email: T.Optional[email.Email],
         log_dir: str,
@@ -55,8 +56,7 @@ class InventoryMonitor:
         dry_run: bool = False,
         verbose: bool = False,
     ) -> None:
-        self.download_url = download_url
-        self.download_key = download_key
+        self.download_url = self.DOWNLOAD_URL
         self.twilio_util: T.Optional[TwilioUtil] = twilio_util
         self.email: T.Optional[email.Email] = admin_email
         self.csv_file = inventory_csv_file or os.path.join(log_dir, "inventory.csv")
@@ -489,7 +489,10 @@ class InventoryMonitor:
         return True
 
     def update_inventory(
-        self, download_url: str, now: datetime.datetime = datetime.datetime.utcnow()
+        self,
+        download_url: str,
+        now: datetime.datetime = datetime.datetime.utcnow(),
+        skip_db_add: bool = False,
     ) -> T.List[T.Tuple[str, str, int]]:
         if self.last_inventory is not None and self.new_inventory is not None:
             log.print_normal(
@@ -533,7 +536,7 @@ class InventoryMonitor:
 
         new_items: T.List[str] = []
         for _, item in self.new_inventory.iterrows():
-            is_new = self._update_local_db_item("", item, now)
+            is_new = True if skip_db_add else self._update_local_db_item("", item, now)
             if is_new:
                 inventory_available = int(item["Total Available"])
                 nc_code = item[self.INVENTORY_CODE_KEY]

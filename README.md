@@ -1,4 +1,5 @@
 # NC ABC Inventory Alert Bot
+
 [![Python application](https://github.com/droneshire/whiskey_inventory_alert_upwork/actions/workflows/python-app.yml/badge.svg)](https://github.com/droneshire/whiskey_inventory_alert_upwork/actions/workflows/python-app.yml)
 
 Track drink inventory and alert to various users via text when new inventory comes on the market.
@@ -8,6 +9,7 @@ There are two parts to this project, a frontend and a backend. This project repr
 # Backend: Inventory Monitoring and SMS Alerts
 
 ## Inventory Monitoring
+
 - Inventory is monitored from this [site](https://abc.nc.gov/StoresBoards/Stocks)
 - Inventory is updated every 15 minutes
 - Inventory can be exported to CSV vie the following endpoint: https://abc.nc.gov/StoresBoards/ExportData
@@ -21,24 +23,28 @@ The alert system is done using [Twilio](https://www.twilio.com/en-us/pricing) an
 
 ### Gmail
 
-We use [`yagmail`](https://mailtrap.io/blog/yagmail-tutorial/) to send emails. This requires the credentials of a gmail account to send on behalf of. 
+We use [`yagmail`](https://mailtrap.io/blog/yagmail-tutorial/) to send emails. This requires the credentials of a gmail account to send on behalf of.
 
 You'll store the email address and password in the `.env` file below. Recommendation is to create a new gmail account for this purpose.
 
 ### Twilio
-Set up a Twilio account for the SMS alerts. 
+
+Set up a Twilio account for the SMS alerts.
 
 https://www.twilio.com/try-twilio
 
 You'll need the `SID`, `AUTH_TOKEN`, and phone number down below.
 
 ### Host Machine
+
 Set up a linux device to deploy the inventory manager bot to.
 
 Create an ssh key for github and add it as a [Deploy Key](https://github.com/droneshire/whiskey_inventory_alert_upwork/settings/keys) to this repo.
+
 ```
 ssh-keygen -t ed25519 -C <YOUR EMAIL> -f /root/.ssh/id_ed25519 -q -N ""
 ```
+
 Copy `digital_ocean_droplet.sh` to the host machine and run it.
 
 ### Config Files
@@ -57,9 +63,6 @@ TWILIO_FROM_SMS_NUMBER="<INSERT YOUR TWILIO SMS NUMBER HERE>"
 TWILIO_AUTH_TOKEN="<INSERT YOUR TWILIO AUTH TOKEN HERE>"
 TWILIO_ACCOUNT_SID="<INSERT YOUR TWILIO ACCOUNT SID HERE>"
 
-# Website to download the inventory from
-INVENTORY_DOWNLOAD_URL="https://abc.nc.gov/StoresBoards/ExportData"
-INVENTORY_DOWNLOAD_KEY="------WebKitFormBoundaryf3qSjXGzLaxCryi8--\r\n"
 
 # Test account to use for testing
 TEST_CLIENT_NAME="<INSERT YOUR TEST CLIENT NAME HERE>"
@@ -82,6 +85,7 @@ GOOGLE_APPLICATION_CREDENTIALS="firebase_service_account.json"
 Finally, add a `firebase_service_account.json` to the repo root directory. The contents of this file can be found [here](https://console.firebase.google.com/u/0/project/inventory-860f0/settings/serviceaccounts/adminsdk).
 
 # Database
+
 The client/drink database will be a sqlite backed Firebase database that will be integrated into a web frontend that will allow clients to configure their settings as desired.
 
 ![image](https://user-images.githubusercontent.com/2355438/233558659-06ae0128-f788-4f0f-a594-2b26f459d32e.png)
@@ -93,13 +97,15 @@ User will also be able to edit the database directly in the Firebase service man
 The bot also has a local database that can either be used as the source of truth (using the `--use-local-db` argument), or will mirror what is seen in Firebase. This provides some redundancy and allows for easy migration should we switch DB hosts in the future.
 
 # Frontend: Assign Inventory Watch to Clients
-The Firebase backed frontend is a separate repo of a React/Typescript based website. 
+
+The Firebase backed frontend is a separate repo of a React/Typescript based website.
 
 The frontend has a simple interface that will require Google authentication to access. It allows the user to input new clients, their contact info, and the associated product codes to watch and alert on.
 
 Repo can be found here: https://github.com/droneshire/whiskey_inventory_firebase_client
 
 ## Icons
+
 - https://abc.nc.gov/Images/Icons/ABC%20Warehouse%20Icon.png
 - https://abc.nc.gov/Images/ABCImagePanel.png
 
