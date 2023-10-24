@@ -69,21 +69,18 @@ def main() -> None:
     )
 
     monitor.init()
-    inventory_df = monitor.update_inventory(InventoryMonitor.DOWNLOAD_URL)
+    inventory = monitor.update_inventory(InventoryMonitor.DOWNLOAD_URL)
 
-    if inventory_df.empty:
+    if len(inventory) == 0:
         log.print_fail("No inventory to use!")
         return
 
-    # read each line in the pandas dataframe and add it to the database
     db_data = {"inventory": {"items": {}}}
-    for index, row in track(
-        inventory_df.iterrows(), description="Inventory", total=len(inventory_df)
-    ):
-        nc_code = row[monitor.INVENTORY_CODE_KEY]
+    for item in track(inventory, description="Inventory", total=len(inventory)):
+        nc_code, brand_name, inventory_available = item
         db_data["inventory"]["items"][nc_code] = {
-            "name": row["Brand Name"],
-            "available": row["Total Available"],
+            "name": brand_name,
+            "available": inventory_available,
             "action": Actions.TRACKING.value,
         }
     monitor.firebase_client.add_items_to_firebase(args.client, db_data)
