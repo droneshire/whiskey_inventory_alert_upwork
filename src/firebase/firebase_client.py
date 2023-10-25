@@ -74,7 +74,7 @@ class FirebaseClient:
             f"Updated client {client} in database:\n{diff.to_json(indent=4, sort_keys=True)}"
         )
 
-        client_dict_firestore = json.loads(json.dumps(self.db_cache[client]))
+        client_dict_firestore = json.loads(json.dumps(db_client))
 
         self.clients_ref.document(client).set(client_dict_firestore)
 
@@ -137,10 +137,10 @@ class FirebaseClient:
             patch_missing_keys_recursive(defs.NULL_CLIENT, db_client)
 
         email = safe_get(
-            self.db_cache[client], "preferences.notifications.email.email".split("."), ""
+            old_db_client, "preferences.notifications.email.email".split("."), ""
         )
         phone_number = safe_get(
-            self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
+            old_db_client, "preferences.notifications.sms.phoneNumber".split("."), ""
         )
         if phone_number and not phone_number.startswith("+1"):
             phone_number = "+1" + phone_number
