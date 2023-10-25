@@ -106,8 +106,17 @@ class FirebaseClient:
                 "preferences.notifications.sms.phoneNumbers".split("."),
                 {},
             )
+            # legacy database value
+            phone_number_dict = safe_get(
+                self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
+            )
+
             phone_numbers = []
-            for phone_number in phone_numbers_dict.values():
+            phone_numbers_to_parse = phone_numbers_dict.values()
+            if not phone_numbers_to_parse and phone_number_dict:
+                phone_numbers_to_parse = [phone_number_dict]
+
+            for phone_number in phone_numbers_to_parse:
                 if phone_number and not phone_number.startswith("+1"):
                     phone_number = "+1" + phone_number
                 phone_numbers.append(phone_number)
@@ -140,16 +149,25 @@ class FirebaseClient:
             log.print_warn(f"Missing keys in client {client}:\n{missing_keys}")
             patch_missing_keys_recursive(defs.NULL_CLIENT, db_client)
 
-        email = safe_get(
-            old_db_client, "preferences.notifications.email.email".split("."), ""
-        )
-        phone_number = safe_get(
+        email = safe_get(old_db_client, "preferences.notifications.email.email".split("."), "")
+
+        # legacy database value
+        phone_number_val = safe_get(
             old_db_client, "preferences.notifications.sms.phoneNumber".split("."), ""
         )
+        phone_numbers_dict = safe_get(
+            old_db_client, "preferences.notifications.sms.phoneNumbers".split("."), {}
+        )
+
         phone_numbers = []
-        for phone_number in phone_numbers_dict.values():
+        phone_numbers_to_parse = phone_numbers_dict.values()
+        if not phone_numbers_to_parse and phone_number_val:
+            phone_numbers_to_parse = [phone_number_val]
+
+        for index, phone_number in enumerate(phone_numbers_to_parse):
             if phone_number and not phone_number.startswith("+1"):
                 phone_number = "+1" + phone_number
+            db_client["preferences"]["notifications"]["sms"]["phoneNumbers"][index] = phone_number
             phone_numbers.append(phone_number)
 
         with ClientDb.client(client) as db:
@@ -188,7 +206,6 @@ class FirebaseClient:
 
         with ClientDb.client(client) as db:
             db.email = email
-            db.phone_numbers = phone_numbers
             db.update_on_new_data = safe_get(
                 db_client, "preferences.updateOnNewData".split("."), False
             )
@@ -222,6 +239,8 @@ class FirebaseClient:
             nc_codes = [i.id for i in db.items]
 
             tracked_nc_codes = [i.nc_code for i in db.tracked_items]
+
+        ClientDb.add_phone_numbers(client, phone_numbers)
 
         for nc_code in nc_codes:
             if nc_code not in db_client["inventory"]["items"]:

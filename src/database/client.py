@@ -168,6 +168,19 @@ class ClientDb:
             db.add(client)
 
     @staticmethod
+    def add_phone_numbers(name: str, phone_numbers: T.List[str]) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == name).first()
+            if client is None:
+                return
+
+            for phone_number in phone_numbers:
+                phone = PhoneNumber(number=phone_number)
+                client.phone_numbers.append(phone)
+
+            db.add(client)
+
+    @staticmethod
     def delete_item(nc_code: str, verbose: bool = False) -> None:
         with ManagedSession() as db:
             item = db.query(Item).filter(Item.id == nc_code).first()

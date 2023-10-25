@@ -40,7 +40,7 @@ class InventoryMonitor:
     MAX_DELTA_IN_INVENTORY_COUNT = 2
     MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE = 10
     MAX_CHARS_PER_MESSAGE = 1600
-    MAX_ITEMS_PER_MESSAGE = 10
+    MAX_ITEMS_PER_MESSAGE = 20
 
     def __init__(
         self,
@@ -48,6 +48,7 @@ class InventoryMonitor:
         admin_email: T.Optional[email.Email],
         log_dir: str,
         credentials_file: str,
+        allowlist_clients: T.Optional[T.List[str]] = None,
         use_local_db: bool = False,
         inventory_csv_file: str = "",
         inventory_diff_file: str = "",
@@ -93,6 +94,8 @@ class InventoryMonitor:
         self.firebase_client: FirebaseClient = (
             FirebaseClient(credentials_file, verbose) if not use_local_db else None
         )
+
+        self.allowlist_clients = allowlist_clients
 
     def init(self, csv_file: str = "") -> None:
         csv_file = csv_file or self.csv_file
@@ -336,6 +339,12 @@ class InventoryMonitor:
 
         self._maybe_send_alerts(client, items_to_update)
 
+    def _is_client_allowed_to_send_sms(self, client_id: str) -> bool:
+        if not self.allowlist_clients:
+            return True
+
+        return client_id in self.allowlist_clients
+
     def _maybe_send_alerts(
         self, client: ClientSchema, items_to_update: T.List[T.Tuple], is_new_inventory: bool = False
     ) -> None:
@@ -357,28 +366,37 @@ class InventoryMonitor:
                 log.print_normal_arrow("No items to update, not sending any alerts")
             return
 
-        log.print_ok(message)
-
-        if (
-            len(message) > self.MAX_CHARS_PER_MESSAGE
-            or len(items_to_update) > self.MAX_ITEMS_PER_MESSAGE
-        ):
-            log.print_fail("Message too long, not sending (something prob went wrong)")
-            return
-
         if not client["has_paid"]:
             log.print_warn("Not sending alert, client has not paid")
             return
 
+        if (
+            len(items_to_update) > self.MAX_ITEMS_PER_MESSAGE
+            or len(message) > self.MAX_CHARS_PER_MESSAGE
+        ):
+            sms_message = (
+                f"NC ABC Inventory Alert\n{STOCK_EMOJI}\n\n{len(items_to_update)} new items in stock\n"
+                "Not texting full list since there were too many items updated at once.\n"
+                "Please check your email for the full list.\n\n"
+            )
+        else:
+            sms_message = message
+
+        log.print_ok(sms_message)
+
         if self.dry_run:
-            log.print_normal_arrow("Dry run, not sending SMS")
+            log.print_normal_arrow("Dry run, not sending SMS or email")
+            return
+
+        if not self._is_client_allowed_to_send_sms(client["id"]):
+            log.print_normal_arrow("Client is not allowed to send SMS")
             return
 
         if client["phone_numbers"] and client["phone_alerts"] and self.twilio_util:
             for phone_number in client["phone_numbers"]:
                 self.twilio_util.send_sms_if_in_window(
                     phone_number["number"],
-                    message,
+                    sms_message,
                 )
 
         if client["email"] and client["email_alerts"] and self.email:
