@@ -107,19 +107,20 @@ class FirebaseClient:
                 {},
             )
             # legacy database value
-            phone_number_dict = safe_get(
+            phone_number_val = safe_get(
                 self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
             )
 
             phone_numbers = []
-            phone_numbers_to_parse = phone_numbers_dict.values()
-            if not phone_numbers_to_parse and phone_number_dict:
-                phone_numbers_to_parse = [phone_number_dict]
+            phone_numbers_to_parse = list(phone_numbers_dict.values())
+            if not phone_numbers_to_parse and phone_number_val:
+                phone_numbers_to_parse = [phone_number_val]
 
-            for phone_number in phone_numbers_to_parse:
-                if phone_number and not phone_number.startswith("+1"):
-                    phone_number = "+1" + phone_number
-                phone_numbers.append(phone_number)
+            for index, phone_number in enumerate(phone_numbers_to_parse):
+                # remove any leading us country code and any parenthesis or brackets from phone num
+                phone_number = "".join([c for c in phone_number if c.isdigit()])
+                if phone_number.startswith("1") and len(phone_number) == 11:
+                    phone_number = phone_number[1:]
 
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
@@ -160,14 +161,21 @@ class FirebaseClient:
         )
 
         phone_numbers = []
-        phone_numbers_to_parse = phone_numbers_dict.values()
+        phone_numbers_to_parse = list(phone_numbers_dict.values())
         if not phone_numbers_to_parse and phone_number_val:
             phone_numbers_to_parse = [phone_number_val]
 
         for index, phone_number in enumerate(phone_numbers_to_parse):
+            # remove any leading us country code and any parenthesis or brackets from phone num
+            phone_number = "".join([c for c in phone_number if c.isdigit()])
+            if phone_number.startswith("1") and len(phone_number) == 11:
+                phone_number = phone_number[1:]
+
+            db_client["preferences"]["notifications"]["sms"]["phoneNumbers"][
+                str(index)
+            ] = phone_number
             if phone_number and not phone_number.startswith("+1"):
                 phone_number = "+1" + phone_number
-            db_client["preferences"]["notifications"]["sms"]["phoneNumbers"][index] = phone_number
             phone_numbers.append(phone_number)
 
         with ClientDb.client(client) as db:
