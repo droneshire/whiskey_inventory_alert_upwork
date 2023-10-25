@@ -8,6 +8,24 @@ from database.connect import Base
 from database.models.item_association import ItemAssociationTable
 
 
+class PhoneNumber(Base):
+    __tablename__ = "PhoneNumber"
+
+    id = Column(types.Integer, primary_key=True)
+    client_id = Column(types.String(80), ForeignKey("Client.id"))
+    client = relationship("Client", back_populates="phone_numbers")
+    number = Column(types.String(11), nullable=False)
+
+
+class PhoneNumberSchema(Schema):  # type: ignore
+    id = fields.Int()
+    number = fields.Str()
+
+    @post_load
+    def make_object(self, data, **kwargs):
+        return PhoneNumber(**data)
+
+
 class TrackingItem(Base):
     __tablename__ = "TrackingItem"
 
@@ -36,7 +54,7 @@ class Client(Base):
     alert_time_range_end = Column(types.Integer, nullable=True)
     alert_time_zone = Column(types.String(80), nullable=True)
     alert_range_enabled = Column(types.Boolean, default=False)
-    phone_number = Column(types.String(11), nullable=False)
+    phone_numbers = relationship("PhoneNumber", back_populates="client")
     phone_alerts = Column(types.Boolean, default=True)
     threshold_inventory = Column(types.Integer, nullable=True, default=1)
     last_updated = Column(types.DateTime(timezone=True), nullable=True)
@@ -51,7 +69,7 @@ class Client(Base):
     tracked_items = relationship("TrackingItem", backref="Client")
 
     def __repr__(self):
-        return f"<Client {self.name}:{self.phone_number}, {self.email}>"
+        return f"<Client {self.name}:{self.phone_numbers}, {self.email}>"
 
 
 class ClientSchema(Schema):  # type: ignore
@@ -63,7 +81,7 @@ class ClientSchema(Schema):  # type: ignore
     alert_time_range_end = fields.Int()
     alert_time_zone = fields.Str()
     alert_range_enabled = fields.Boolean()
-    phone_number = fields.Str()
+    phone_numbers = fields.List(fields.Nested("PhoneNumberSchema"))
     phone_alerts = fields.Boolean()
     threshold_inventory = fields.Int()
     last_updated = fields.DateTime()

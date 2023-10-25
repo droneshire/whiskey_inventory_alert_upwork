@@ -67,7 +67,7 @@ def main() -> None:
     database_name = DEFAULT_DB
     init_database(args.log_dir, database_name, Client)
 
-    ClientDb.add_client(args.name, args.email, args.phone_number)
+    ClientDb.add_client(args.name, args.email, [args.phone_number])
 
     if args.item_code:
         ClientDb.add_item_to_client_and_track(args.name, args.item_code)

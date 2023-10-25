@@ -111,7 +111,7 @@ class InventoryManagementTest(unittest.TestCase):
     def _setup_client(
         self, nc_codes: T.List[str], alert_range_enabled: bool, has_paid: bool, track: bool = True
     ) -> ClientSchema:
-        ClientDb.add_client(self.test_client_name, "test@gmail.com", self.test_num)
+        ClientDb.add_client(self.test_client_name, "test@gmail.com", [self.test_num])
         for nc_code in nc_codes:
             ClientDb.add_item_to_client_and_track(self.test_client_name, nc_code)
 

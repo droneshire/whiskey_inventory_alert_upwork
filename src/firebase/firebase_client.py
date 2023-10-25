@@ -101,20 +101,24 @@ class FirebaseClient:
             email = safe_get(
                 self.db_cache[doc_id], "preferences.notifications.email.email".split("."), ""
             )
-            phone_number = safe_get(
+            phone_numbers_dict = safe_get(
                 self.db_cache[doc_id],
-                "preferences.notifications.sms.phoneNumber".split("."),
-                "",
+                "preferences.notifications.sms.phoneNumbers".split("."),
+                {},
             )
-            if phone_number and not phone_number.startswith("+1"):
-                phone_number = "+1" + phone_number
+            phone_numbers = []
+            for phone_number in phone_numbers_dict.values():
+                if phone_number and not phone_number.startswith("+1"):
+                    phone_number = "+1" + phone_number
+                phone_numbers.append(phone_number)
+
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
-                ClientDb.add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_numbers)
             elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")
-                ClientDb.add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_numbers)
             elif change.type.name == Changes.REMOVED.name:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
@@ -142,8 +146,11 @@ class FirebaseClient:
         phone_number = safe_get(
             old_db_client, "preferences.notifications.sms.phoneNumber".split("."), ""
         )
-        if phone_number and not phone_number.startswith("+1"):
-            phone_number = "+1" + phone_number
+        phone_numbers = []
+        for phone_number in phone_numbers_dict.values():
+            if phone_number and not phone_number.startswith("+1"):
+                phone_number = "+1" + phone_number
+            phone_numbers.append(phone_number)
 
         with ClientDb.client(client) as db:
             if not db:
@@ -181,7 +188,7 @@ class FirebaseClient:
 
         with ClientDb.client(client) as db:
             db.email = email
-            db.phone_number = phone_number
+            db.phone_numbers = phone_numbers
             db.update_on_new_data = safe_get(
                 db_client, "preferences.updateOnNewData".split("."), False
             )

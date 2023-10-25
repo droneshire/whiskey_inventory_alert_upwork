@@ -33,7 +33,7 @@ class TimeZone(T.TypedDict):
 
 
 class Sms(T.TypedDict):
-    phoneNumber: str
+    phoneNumbers: T.Dict[str, str]
     updatesEnabled: bool
     alertWindowEnabled: bool
     alertTimeRange: T.List[str]
@@ -76,7 +76,7 @@ NULL_CLIENT = Client(
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),
             sms=Sms(
-                phoneNumber="",
+                phoneNumbers={},
                 updatesEnabled=False,
                 alertWindowEnabled=True,
                 alertTimeRange=[],
