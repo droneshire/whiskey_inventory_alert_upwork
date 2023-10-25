@@ -87,7 +87,6 @@ def main() -> None:
                 firebase_server.set_reset(reset=False)
                 log.print_ok_arrow("Bot reset complete.")
             elif is_process_killed():
-                log.clean_log_dir(os.path.join(log_dir, "logs"))
                 reset_server()
                 log.print_ok_arrow("Bot reset complete.")
             firebase_server.refresh()
