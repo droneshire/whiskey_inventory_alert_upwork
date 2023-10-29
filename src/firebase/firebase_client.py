@@ -168,12 +168,13 @@ class FirebaseClient:
         for index, phone_number in enumerate(phone_numbers_to_parse):
             # remove any leading us country code and any parenthesis or brackets from phone num
             phone_number = "".join([c for c in phone_number if c.isdigit()])
-            if phone_number.startswith("1") and len(phone_number) == 11:
-                phone_number = phone_number[1:]
 
             db_client["preferences"]["notifications"]["sms"]["phoneNumbers"][
                 str(index)
             ] = phone_number
+
+            if phone_number.startswith("1") and len(phone_number) == 11:
+                phone_number = phone_number[1:]
             if phone_number and not phone_number.startswith("+1"):
                 phone_number = "+1" + phone_number
             phone_numbers.append(phone_number)
