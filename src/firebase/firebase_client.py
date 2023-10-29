@@ -110,10 +110,9 @@ class FirebaseClient:
                 self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
             )
 
-            phone_numbers = []
-            phone_numbers_to_parse = list(phone_numbers_dict.values())
-            if not phone_numbers_to_parse and phone_number_val:
-                phone_numbers_to_parse = [phone_number_val]
+            phone_numbers = list(phone_numbers_dict.values())
+            if not phone_numbers and phone_number_val:
+                phone_numbers = [phone_number_val]
 
             for index, phone_number in enumerate(phone_numbers_to_parse):
                 # remove any leading us country code and any parenthesis or brackets from phone num
@@ -161,12 +160,11 @@ class FirebaseClient:
             old_db_client, "preferences.notifications.sms.phoneNumbers".split("."), {}
         )
 
-        phone_numbers = []
-        phone_numbers_to_parse = list(phone_numbers_dict.values())
-        if not phone_numbers_to_parse and phone_number_val:
+        phone_numbers = list(phone_numbers_dict.values())
+        if not phone_numbers and phone_number_val:
             phone_numbers_to_parse = [phone_number_val]
 
-        for index, phone_number in enumerate(phone_numbers_to_parse):
+        for index, phone_number in enumerate(phone_numbers):
             # remove any leading us country code and any parenthesis or brackets from phone num
             phone_number = "".join([c for c in phone_number if c.isdigit()])
 
