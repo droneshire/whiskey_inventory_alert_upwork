@@ -114,7 +114,7 @@ class FirebaseClient:
             if not phone_numbers and phone_number_val:
                 phone_numbers = [phone_number_val]
 
-            for index, phone_number in enumerate(phone_numbers_to_parse):
+            for index, phone_number in enumerate(phone_numbers):
                 # remove any leading us country code and any parenthesis or brackets from phone num
                 phone_number = "".join([c for c in phone_number if c.isdigit()])
                 if phone_number.startswith("1") and len(phone_number) == 11:
