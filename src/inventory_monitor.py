@@ -577,6 +577,7 @@ class InventoryMonitor:
                 return None
 
             if not self._is_inventory_valid(self.new_inventory):
+                self.new_inventory = self.last_inventory
                 return None
 
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
