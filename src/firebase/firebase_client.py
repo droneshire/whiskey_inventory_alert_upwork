@@ -86,13 +86,12 @@ class FirebaseClient:
     ) -> None:
         log.print_warn(f"Received collection snapshot for {len(collection_snapshot)} documents")
 
-        clients = self.db_cache.keys()
         with self.db_cache_lock:
             self.db_cache = {}
             for doc in collection_snapshot:
                 self.db_cache[doc.id] = doc.to_dict()
 
-        for client in clients:
+        for client in self.db_cache.keys():
             if client not in self.db_cache:
                 self._delete_client(client)
 
@@ -121,6 +120,8 @@ class FirebaseClient:
                 phone_number = "".join([c for c in phone_number if c.isdigit()])
                 if phone_number.startswith("1") and len(phone_number) == 11:
                     phone_number = phone_number[1:]
+
+            log.print_normal_arrow(f"Phone numbers: {phone_numbers}")
 
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
@@ -277,13 +278,12 @@ class FirebaseClient:
         mechanism in case the watcher fails, which it seems to periodically do.
         """
         log.print_warn(f"Updating from firebase database instead of cache")
-        clients = self.db_cache.keys()
         with self.db_cache_lock:
             self.db_cache = {}
             for doc in self.clients_ref.list_documents():
                 self.db_cache[doc.id] = doc.get().to_dict()
 
-        for client in clients:
+        for client in self.db_cache.keys():
             if client not in self.db_cache:
                 self._delete_client(client)
 
