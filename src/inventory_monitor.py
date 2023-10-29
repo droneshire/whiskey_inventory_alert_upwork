@@ -274,7 +274,6 @@ class InventoryMonitor:
             )
 
             if item_df is None:
-                log.print_normal_arrow(f"Did not find {nc_code} in inventory")
                 self._set_inventory_to_zero(nc_code)
                 continue
 
