@@ -120,14 +120,14 @@ class FirebaseClient:
                 if phone_number.startswith("1") and len(phone_number) == 11:
                     phone_number = phone_number[1:]
 
-            if change.type.name == Changes.ADDED.name:
+            if change.type == Changes.ADDED:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
                 ClientDb.add_client(doc_id, email, phone_numbers)
-            elif change.type.name == Changes.MODIFIED.name:
+            elif change.type == Changes.MODIFIED:
                 log.print_ok_blue(f"Modified document: {doc_id}")
                 ClientDb.add_client(doc_id, email, phone_numbers)
-            elif change.type.name == Changes.REMOVED.name:
+            elif change.type == Changes.REMOVED:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
                 continue

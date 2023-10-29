@@ -1,4 +1,5 @@
 import datetime
+import gc
 import json
 import os
 import shutil
@@ -23,6 +24,19 @@ from util.twilio_util import TwilioUtil
 STOCK_EMOJI = "\U0001F943"
 
 
+def _sanitize_column_name(name: str) -> str:
+    # Convert to lowercase
+    sanitized_name = name.lower()
+
+    # Replace spaces with underscores
+    sanitized_name = sanitized_name.replace(" ", "_")
+
+    # Remove special characters (anything that's not alphanumeric or underscore)
+    sanitized_name = "".join(char for char in sanitized_name if char.isalnum() or char == "_")
+
+    return sanitized_name
+
+
 class InventoryMonitor:
     DOWNLOAD_URL = "https://abc2.nc.gov/StoresBoards/ExportData"
     DOWNLOAD_KEY = ""
@@ -36,7 +50,8 @@ class InventoryMonitor:
         "test": 60,
     }
     WAIT_TIME = 30
-    INVENTORY_CODE_KEY = "NC Code"
+    RAW_INVENTORY_CODE_KEY = "NC Code"
+    INVENTORY_CODE_KEY = _sanitize_column_name(RAW_INVENTORY_CODE_KEY)
     MAX_DELTA_IN_INVENTORY_COUNT = 2
     MAX_INVENTORY_DOWNLOADS_WITHOUT_CHANGE = 10
     MAX_CHARS_PER_MESSAGE = 1600
@@ -102,10 +117,23 @@ class InventoryMonitor:
 
         self._update_cache_from_local_db()
 
+        # Check if the CSV file exists and is not empty
         if os.path.isfile(csv_file):
             log.print_ok(f"Found existing inventory file at {csv_file}")
-            self.new_inventory = self._clean_inventory(csv_file)
-            self.last_inventory = self.new_inventory.copy()
+
+            # Clean the inventory
+            cleaned_inventory = self._clean_inventory(csv_file)
+
+            # Check if the cleaned inventory is not None and not empty
+            if cleaned_inventory is not None and not cleaned_inventory.empty:
+                self.new_inventory = cleaned_inventory
+
+                # Create a copy for last_inventory
+                self.last_inventory = self.new_inventory.copy()
+            else:
+                log.format_fail_arrow(f"Failed to load or clean inventory from {csv_file}")
+                self.new_inventory = None
+                self.last_inventory = None
 
         if self.new_inventory is None:
             log.format_fail_arrow("Inventory doesn't exist, skipping alerts")
@@ -133,20 +161,23 @@ class InventoryMonitor:
     def _update_local_db_item(
         self,
         client_name: str,
-        item: pd.core.frame.DataFrame,
+        item: pd.core.frame.Series,  # Note that we're changing this to Series to reflect the datatype
         now: datetime.datetime = datetime.datetime.utcnow(),
     ) -> bool:
         # check and add item into db if not there already, returns true if it is a new item
-        inventory = int(item["Total Available"])
+
+        inventory = int(item.total_available)
+        nc_code = getattr(item, self.INVENTORY_CODE_KEY)
+
         return ClientDb.add_or_update_item(
-            item[self.INVENTORY_CODE_KEY],
-            brand_name=item["Brand Name"],
+            nc_code,
+            brand_name=item.brand_name,
             total_available=inventory,
-            size=item["Size"],
-            cases_per_pallet=int(item["Cases Per Pallet"]),
-            supplier=item["Supplier"],
-            supplier_allotment=int(item["Supplier Allotment"]),
-            broker_name=item["Broker Name"],
+            size=item.size,
+            cases_per_pallet=int(item.cases_per_pallet),
+            supplier=item.supplier,
+            supplier_allotment=int(item.supplier_allotment),
+            broker_name=item.broker_name,
             out_of_stock_time=None if inventory > 0 else now,
         )
 
@@ -269,7 +300,7 @@ class InventoryMonitor:
                 log.print_normal_arrow(f"Skipping {nc_code} because it is not being tracked")
                 continue
 
-            item_df: pd.core.frame.DataFrame = self._get_item_from_inventory(
+            item_df: pd.core.series.Series = self._get_item_from_inventory(
                 item_schema["id"], self.new_inventory
             )
 
@@ -279,12 +310,12 @@ class InventoryMonitor:
 
             self._update_local_db_item(client["id"], item_df, now)
 
-            if item_df["Total Available"] == 0:
+            if item_df.total_available == 0:
                 if self.verbose:
                     log.print_normal_arrow(f"{nc_code} is out of stock")
                 continue
 
-            previous_item: pd.core.frame.DataFrame = self._get_item_from_inventory(
+            previous_item: pd.core.series.Series = self._get_item_from_inventory(
                 item_schema["id"], self.last_inventory
             )
 
@@ -292,9 +323,9 @@ class InventoryMonitor:
                 log.print_fail(f"{nc_code} was not previously in inventory")
                 previous_available = 0
             else:
-                previous_available = previous_item["Total Available"]
+                previous_available = previous_item.total_available
 
-            delta = item_df["Total Available"] - previous_available
+            delta = item_df.total_available - previous_available
             if delta > 0:
                 delta_str = log.format_ok(f"+{delta}")
             elif delta < 0:
@@ -302,11 +333,11 @@ class InventoryMonitor:
             else:
                 delta_str = log.format_normal(f"{delta}")
 
-            brand_name = item_df["Brand Name"]
+            brand_name = item_df.brand_name
 
             if self.verbose or delta != 0:
                 log.print_normal_arrow(
-                    f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item_df['Total Available']}"
+                    f"{nc_code}: Previous inventory: {previous_available}, Current inventory: {item_df.total_available}"
                 )
                 log.print_ok_blue_arrow(
                     f"{STOCK_EMOJI} {nc_code} {brand_name} change: {delta_str} units"
@@ -334,7 +365,7 @@ class InventoryMonitor:
             if self.skip_alerts:
                 continue
 
-            items_to_update.append((nc_code, brand_name, item_df["Total Available"]))
+            items_to_update.append((nc_code, brand_name, item_df.total_available))
 
         self._maybe_send_alerts(client, items_to_update)
 
@@ -446,33 +477,39 @@ class InventoryMonitor:
 
     def _get_item_from_inventory(
         self, nc_code: int, dataframe: pd.core.frame.DataFrame
-    ) -> T.Optional[pd.core.frame.DataFrame]:
+    ) -> T.Optional[pd.Series]:
         if dataframe is None or dataframe.empty:
             log.print_warn("No inventory loaded")
             return None
 
         inventory_codes = dataframe[self.INVENTORY_CODE_KEY]
-
         matches: pd.core.frame.DataFrame = dataframe[inventory_codes == nc_code]
 
         if matches.empty:
             log.print_warn(f"Did not find {nc_code} in inventory")
             return None
-
         return matches.iloc[0]
 
     def _clean_inventory(self, csv_file: str) -> pd.core.frame.DataFrame:
+        chunk_size = 4096
+        processed_chunks = []
+
         try:
-            dataframe = pd.read_csv(csv_file)
+            with pd.read_csv(csv_file, chunksize=chunk_size) as reader:
+                for chunk in reader:
+                    # clean up the code column
+                    chunk[self.RAW_INVENTORY_CODE_KEY].replace(
+                        r"=\"(.*)\"", r"\1", regex=True, inplace=True
+                    )
+                    # Sanitize column names
+                    chunk.columns = [_sanitize_column_name(col) for col in chunk.columns]
+
+                    processed_chunks.append(chunk)
         except:
             log.print_fail(f"Error parsing inventory file")
             return None
 
-        # clean up the code column
-        dataframe[self.INVENTORY_CODE_KEY] = dataframe[self.INVENTORY_CODE_KEY].str.replace(
-            r"=\"(.*)\"", r"\1", regex=True
-        )
-
+        dataframe = pd.concat(processed_chunks, ignore_index=True)
         return dataframe
 
     def _is_inventory_valid(self, inventory: pd.core.frame.DataFrame) -> bool:
@@ -512,14 +549,11 @@ class InventoryMonitor:
         download_url: str,
         now: datetime.datetime = datetime.datetime.utcnow(),
         skip_db_add: bool = False,
-    ) -> T.List[T.Tuple[str, str, int]]:
-        if self.last_inventory is not None and self.new_inventory is not None:
-            log.print_normal(
-                f"Previous: {len(self.last_inventory)}, New: {len(self.new_inventory)}"
-            )
-
+    ) -> T.Optional[T.List[T.Tuple[str, str, int]]]:
         if self.new_inventory is not None:
-            self.last_inventory = self.new_inventory.copy()
+            self.last_inventory = self.new_inventory
+            self.new_inventory = None
+            gc.collect()
 
         with tempfile.NamedTemporaryFile(suffix=".csv") as csv_file:
             if os.path.isfile(download_url):
@@ -537,15 +571,13 @@ class InventoryMonitor:
                 log.print_normal_arrow("Not time to check inventory")
                 return None
 
-            inventory = self._clean_inventory(csv_file.name)
+            self.new_inventory = self._clean_inventory(csv_file.name)
 
-            if inventory is None:
+            if self.new_inventory is None or self.new_inventory.empty:
                 return None
 
-            if not self._is_inventory_valid(inventory):
+            if not self._is_inventory_valid(self.new_inventory):
                 return None
-
-            self.new_inventory = inventory
 
             log.print_ok_arrow(f"Downloaded {len(self.new_inventory)} items")
             shutil.copy(csv_file.name, self.csv_file)
@@ -553,16 +585,20 @@ class InventoryMonitor:
         self._write_inventory_delta_file()
         self.last_inventory_update_time = time.time()
 
-        new_items: T.List[str] = []
-        for _, item in self.new_inventory.iterrows():
-            is_new = True if skip_db_add else self._update_local_db_item("", item, now)
-            if is_new:
-                inventory_available = int(item["Total Available"])
-                nc_code = item[self.INVENTORY_CODE_KEY]
-                brand_name = item["Brand Name"]
-                new_items.append((nc_code, brand_name, inventory_available))
+        def generate_new_items():
+            for item in self.new_inventory.itertuples(index=False):
+                is_new = skip_db_add or self._update_local_db_item("", item, now)
+                if not is_new:
+                    continue
 
-        log.print_bold(f"Found {len(new_items)} new items")
+                inventory_available = int(item.total_available)
+                nc_code = getattr(item, self.INVENTORY_CODE_KEY)
+                brand_name = item.brand_name
+                yield (nc_code, brand_name, inventory_available)
+
+        new_items = list(generate_new_items())
+
+        log.print_bold(f"Found {len(new_items) if new_items else 0} new items")
         return new_items
 
     def _update_sms_time_window(self, name: str) -> None:
