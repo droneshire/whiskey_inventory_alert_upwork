@@ -439,6 +439,17 @@ class InventoryManagementTest(unittest.TestCase):
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
+    def test_add_phone_numbers_to_db(self):
+        client_schema = self._setup_client(["00009"], True, True)
+
+        phone_numbers = ["+1234567890", "+0987654321"]
+
+        for _ in range(3):
+            ClientDb.add_phone_numbers(self.test_client_name, phone_numbers)
+
+        with ClientDb.client(self.test_client_name) as client:
+            self.assertEqual(len(client.phone_numbers), len(phone_numbers))
+
 
 if __name__ == "__main__":
     unittest.main()
