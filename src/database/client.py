@@ -174,6 +174,7 @@ class ClientDb:
             if client is None:
                 return
 
+            client.phone_numbers = []
             for phone_number in phone_numbers:
                 phone = PhoneNumber(number=phone_number)
                 client.phone_numbers.append(phone)
