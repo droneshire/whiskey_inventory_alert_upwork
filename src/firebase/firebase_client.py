@@ -110,24 +110,33 @@ class FirebaseClient:
                 self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
             )
 
-            phone_numbers = list(phone_numbers_dict.values())
-            if not phone_numbers and phone_number_val:
-                phone_numbers = [phone_number_val]
+            phone_numbers_to_parse = list(phone_numbers_dict.values())
+            if not phone_numbers_to_parse and phone_number_val:
+                phone_numbers_to_parse = [phone_number_val]
 
-            for index, phone_number in enumerate(phone_numbers):
+            phone_numbers = []
+            for index, phone_number in enumerate(phone_numbers_to_parse):
                 # remove any leading us country code and any parenthesis or brackets from phone num
-                phone_number = "".join([c for c in phone_number if c.isdigit()])
-                if phone_number.startswith("1") and len(phone_number) == 11:
-                    phone_number = phone_number[1:]
+                sanitized_phone_number = "".join([c for c in phone_number if c.isdigit()])
 
-            if change.type == Changes.ADDED:
+                if not sanitized_phone_number:
+                    continue
+
+                if sanitized_phone_number.startswith("1") and len(sanitized_phone_number) == 11:
+                    sanitized_phone_number = sanitized_phone_number[1:]
+
+                sanitized_phone_number = "+1" + sanitized_phone_number
+
+                phone_numbers.append(sanitized_phone_number)
+
+            if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
                 ClientDb.add_client(doc_id, email, phone_numbers)
-            elif change.type == Changes.MODIFIED:
+            elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")
                 ClientDb.add_client(doc_id, email, phone_numbers)
-            elif change.type == Changes.REMOVED:
+            elif change.type.name == Changes.REMOVED.name:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
                 continue
@@ -158,23 +167,24 @@ class FirebaseClient:
             old_db_client, "preferences.notifications.sms.phoneNumbers".split("."), {}
         )
 
-        phone_numbers = list(phone_numbers_dict.values())
-        if not phone_numbers and phone_number_val:
+        phone_numbers_to_parse = list(phone_numbers_dict.values())
+        if not phone_numbers_to_parse and phone_number_val:
             phone_numbers_to_parse = [phone_number_val]
 
-        for index, phone_number in enumerate(phone_numbers):
+        phone_numbers = []
+        for index, phone_number in enumerate(phone_numbers_to_parse):
             # remove any leading us country code and any parenthesis or brackets from phone num
-            phone_number = "".join([c for c in phone_number if c.isdigit()])
+            sanitized_phone_number = "".join([c for c in phone_number if c.isdigit()])
 
-            db_client["preferences"]["notifications"]["sms"]["phoneNumbers"][
-                str(index)
-            ] = phone_number
+            if not sanitized_phone_number:
+                continue
 
-            if phone_number.startswith("1") and len(phone_number) == 11:
-                phone_number = phone_number[1:]
-            if phone_number and not phone_number.startswith("+1"):
-                phone_number = "+1" + phone_number
-            phone_numbers.append(phone_number)
+            if sanitized_phone_number.startswith("1") and len(sanitized_phone_number) == 11:
+                sanitized_phone_number = sanitized_phone_number[1:]
+
+            sanitized_phone_number = "+1" + sanitized_phone_number
+
+            phone_numbers.append(sanitized_phone_number)
 
         with ClientDb.client(client) as db:
             if not db:

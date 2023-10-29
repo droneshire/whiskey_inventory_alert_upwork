@@ -138,22 +138,22 @@ def main() -> None:
     monitor.init()
 
     while True:
-        try:
-            monitor.run()
-        except KeyboardInterrupt:
-            os.remove(path=PIDFILE)
-            break
-        except Exception as e:
-            os.remove(path=PIDFILE)
-            log.print_fail(f"Exception: {e}")
-            alarm_emoji = "\U0001F6A8"
-            message = f"{alarm_emoji} Admin Inventory Alert\n\n"
-            message += "Inventory alert bot has crashed!\n"
-            message += "Please restart the backend server\n"
-            log.print_fail(f"{message}")
-            if args.enable_alarm:
-                twilio_util.send_sms(os.environ.get("ADMIN_PHONE", ""), message)
-            raise e
+        # try:
+        monitor.run()
+        # except KeyboardInterrupt:
+        #     os.remove(path=PIDFILE)
+        #     break
+        # except Exception as e:
+        #     os.remove(path=PIDFILE)
+        #     log.print_fail(f"Exception: {e}")
+        #     alarm_emoji = "\U0001F6A8"
+        #     message = f"{alarm_emoji} Admin Inventory Alert\n\n"
+        #     message += "Inventory alert bot has crashed!\n"
+        #     message += "Please restart the backend server\n"
+        #     log.print_fail(f"{message}")
+        #     if args.enable_alarm:
+        #         twilio_util.send_sms(os.environ.get("ADMIN_PHONE", ""), message)
+        #     raise e
 
 
 if __name__ == "__main__":
