@@ -48,7 +48,7 @@ class TwilioUtil:
         self, to_number: str, start_time: int, end_time: int, timezone: str
     ) -> None:
         log.print_bright(
-            f"Updating {timezone} send window to: {start_time // 60}:{start_time % 60:02} - {end_time // 60}:{end_time % 60:02} ({timezone})"
+            f"Updating {timezone} send window for {to_number} to: {start_time // 60}:{start_time % 60:02} - {end_time // 60}:{end_time % 60:02} ({timezone})"
         )
         self.window[to_number] = {
             "start_time": start_time,
@@ -86,10 +86,13 @@ class TwilioUtil:
             end_time = self.window[to_number].get("end_time", 60 * 60 * 18)
             timezone = self.window[to_number].get("timezone", "America/Los_Angeles")
 
-            log.print_normal(f"Time in UTC: {now.strftime('%H:%M:%S')}")
             now_with_tz = pytz.utc.localize(now)
             converted_to_tz = now_with_tz.astimezone(timezone)
-            log.print_normal(f"Time in {timezone}: {converted_to_tz.strftime('%H:%M:%S')}")
+
+            if self.verbose:
+                log.print_normal(f"Time in UTC: {now.strftime('%H:%M:%S')}")
+                log.print_normal(f"Time in {timezone}: {converted_to_tz.strftime('%H:%M:%S')}")
+
             now_minutes = self._get_minutes_from_time(converted_to_tz)
 
             is_within_window = now_minutes >= start_time and now_minutes <= end_time
