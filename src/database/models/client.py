@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, post_load
-from sqlalchemy import ForeignKey, types
+from sqlalchemy import ForeignKey, UniqueConstraint, types
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Column
 from sqlalchemy.sql import func
@@ -15,6 +15,8 @@ class PhoneNumber(Base):
     client_id = Column(types.String(80), ForeignKey("Client.id"))
     client = relationship("Client", back_populates="phone_numbers")
     number = Column(types.String(11), nullable=False)
+
+    __table_args__ = (UniqueConstraint("client_id", "number", name="_client_phone_uc"),)
 
 
 class PhoneNumberSchema(Schema):  # type: ignore
