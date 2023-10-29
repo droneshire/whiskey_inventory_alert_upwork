@@ -591,6 +591,8 @@ class InventoryMonitor:
 
         if not self.clients:
             log.print_fail("No clients to check inventory for")
+            self.firebase_client.update_watchers()
+            self.last_query_firebase_time = time.time()
             return
 
         for name, client in self.clients.items():
