@@ -99,7 +99,7 @@ typing_extensions==4.5.0
 tzdata==2023.3
 uritemplate==4.1.1
 urllib3==1.26.18
-Werkzeug==2.2.3
+Werkzeug==3.0.1
 wrapt==1.15.0
 yagmail==0.15.293
 yarl==1.9.1
