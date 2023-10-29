@@ -101,20 +101,34 @@ class FirebaseClient:
             email = safe_get(
                 self.db_cache[doc_id], "preferences.notifications.email.email".split("."), ""
             )
-            phone_number = safe_get(
+            phone_numbers_dict = safe_get(
                 self.db_cache[doc_id],
-                "preferences.notifications.sms.phoneNumber".split("."),
-                "",
+                "preferences.notifications.sms.phoneNumbers".split("."),
+                {},
             )
-            if phone_number and not phone_number.startswith("+1"):
-                phone_number = "+1" + phone_number
+            # legacy database value
+            phone_number_val = safe_get(
+                self.db_cache[client], "preferences.notifications.sms.phoneNumber".split("."), ""
+            )
+
+            phone_numbers = []
+            phone_numbers_to_parse = list(phone_numbers_dict.values())
+            if not phone_numbers_to_parse and phone_number_val:
+                phone_numbers_to_parse = [phone_number_val]
+
+            for index, phone_number in enumerate(phone_numbers_to_parse):
+                # remove any leading us country code and any parenthesis or brackets from phone num
+                phone_number = "".join([c for c in phone_number if c.isdigit()])
+                if phone_number.startswith("1") and len(phone_number) == 11:
+                    phone_number = phone_number[1:]
+
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
-                ClientDb.add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_numbers)
             elif change.type.name == Changes.MODIFIED.name:
                 log.print_ok_blue(f"Modified document: {doc_id}")
-                ClientDb.add_client(doc_id, email, phone_number)
+                ClientDb.add_client(doc_id, email, phone_numbers)
             elif change.type.name == Changes.REMOVED.name:
                 log.print_ok_blue(f"Removed document: {doc_id}")
                 self._delete_client(doc_id)
@@ -136,14 +150,34 @@ class FirebaseClient:
             log.print_warn(f"Missing keys in client {client}:\n{missing_keys}")
             patch_missing_keys_recursive(defs.NULL_CLIENT, db_client)
 
-        email = safe_get(
-            old_db_client, "preferences.notifications.email.email".split("."), ""
-        )
-        phone_number = safe_get(
+        email = safe_get(old_db_client, "preferences.notifications.email.email".split("."), "")
+
+        # legacy database value
+        phone_number_val = safe_get(
             old_db_client, "preferences.notifications.sms.phoneNumber".split("."), ""
         )
-        if phone_number and not phone_number.startswith("+1"):
-            phone_number = "+1" + phone_number
+        phone_numbers_dict = safe_get(
+            old_db_client, "preferences.notifications.sms.phoneNumbers".split("."), {}
+        )
+
+        phone_numbers = []
+        phone_numbers_to_parse = list(phone_numbers_dict.values())
+        if not phone_numbers_to_parse and phone_number_val:
+            phone_numbers_to_parse = [phone_number_val]
+
+        for index, phone_number in enumerate(phone_numbers_to_parse):
+            # remove any leading us country code and any parenthesis or brackets from phone num
+            phone_number = "".join([c for c in phone_number if c.isdigit()])
+
+            db_client["preferences"]["notifications"]["sms"]["phoneNumbers"][
+                str(index)
+            ] = phone_number
+
+            if phone_number.startswith("1") and len(phone_number) == 11:
+                phone_number = phone_number[1:]
+            if phone_number and not phone_number.startswith("+1"):
+                phone_number = "+1" + phone_number
+            phone_numbers.append(phone_number)
 
         with ClientDb.client(client) as db:
             if not db:
@@ -181,7 +215,6 @@ class FirebaseClient:
 
         with ClientDb.client(client) as db:
             db.email = email
-            db.phone_number = phone_number
             db.update_on_new_data = safe_get(
                 db_client, "preferences.updateOnNewData".split("."), False
             )
@@ -215,6 +248,8 @@ class FirebaseClient:
             nc_codes = [i.id for i in db.items]
 
             tracked_nc_codes = [i.nc_code for i in db.tracked_items]
+
+        ClientDb.add_phone_numbers(client, phone_numbers)
 
         for nc_code in nc_codes:
             if nc_code not in db_client["inventory"]["items"]:

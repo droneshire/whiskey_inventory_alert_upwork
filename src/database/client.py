@@ -8,7 +8,7 @@ import dotenv
 from sqlalchemy.sql import func
 
 from database.connect import ManagedSession
-from database.models.client import Client, TrackingItem
+from database.models.client import Client, TrackingItem, PhoneNumber
 from database.models.item import Item, ItemSchema
 from database.models.item_association import ItemAssociationTable
 from util import log
@@ -140,7 +140,7 @@ class ClientDb:
     def add_client(
         name: str,
         email: str = "",
-        phone_number: str = "",
+        phone_numbers: T.List[str] = None,
         verbose: bool = False,
     ) -> None:
         with ManagedSession() as db:
@@ -152,9 +152,31 @@ class ClientDb:
 
             log.print_ok_arrow(f"Created {name} client")
 
+            if phone_numbers is None:
+                phone_numbers = []
+
+            phone_number_objects = []
+
+            for phone_number in phone_numbers:
+                phone = PhoneNumber(number=phone_number)
+                phone_number_objects.append(phone)
+
             client = Client(
-                id=name, email=email, phone_number=phone_number, last_updated=func.now()
+                id=name, email=email, phone_numbers=phone_number_objects, last_updated=func.now()
             )
+
+            db.add(client)
+
+    @staticmethod
+    def add_phone_numbers(name: str, phone_numbers: T.List[str]) -> None:
+        with ManagedSession() as db:
+            client = db.query(Client).filter(Client.id == name).first()
+            if client is None:
+                return
+
+            for phone_number in phone_numbers:
+                phone = PhoneNumber(number=phone_number)
+                client.phone_numbers.append(phone)
 
             db.add(client)
 

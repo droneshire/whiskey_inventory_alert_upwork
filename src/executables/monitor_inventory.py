@@ -61,6 +61,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--enable-alarm", action="store_true", help="Enable sms alerts when crashes occur"
     )
+
+    parser.add_argument(
+        "--allowlist-clients",
+        type=str,
+        nargs="+",
+        help="Clients to allowlist",
+        default=[],
+    )
     return parser.parse_args()
 
 
@@ -120,6 +128,7 @@ def main() -> None:
         admin_email=email_accounts[0],
         log_dir=args.log_dir,
         credentials_file=get_credentials_file(),
+        allowlist_clients=args.allowlist_clients,
         use_local_db=args.use_local_db,
         enable_inventory_delta_file=args.enable_diff_log,
         dry_run=args.dry_run,

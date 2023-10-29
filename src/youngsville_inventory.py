@@ -59,7 +59,7 @@ class YoungsvilleAbcInventory:
     TOTAL_AVAILABLE = "Total Available"
 
     def __init__(self, username: str, password: str) -> None:
-        self.inventory: T.Dict[T.Dict[str, T.Any]] = {}
+        self.inventory: T.Dict[str, T.Dict[str, T.Any]] = {}
         self.session = requests.Session()
         self.data = DATA.format(username, password)
 

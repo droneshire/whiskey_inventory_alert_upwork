@@ -62,6 +62,7 @@ def main() -> None:
         admin_email=None,
         log_dir=args.log_dir,
         credentials_file=get_credentials_file(),
+        allowlist_clients=[args.client],
         use_local_db=False,
         enable_inventory_delta_file=False,
         dry_run=False,
