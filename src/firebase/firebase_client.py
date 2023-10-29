@@ -120,8 +120,6 @@ class FirebaseClient:
                 if phone_number.startswith("1") and len(phone_number) == 11:
                     phone_number = phone_number[1:]
 
-            log.print_normal_arrow(f"Phone numbers: {phone_numbers}")
-
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
 
