@@ -573,14 +573,18 @@ class InventoryMonitor:
                     log.print_fail(f"Error downloading inventory: {e}")
             else:
                 log.print_normal_arrow("Not time to check inventory")
+                self.new_inventory = self.last_inventory
                 return None
 
             self.new_inventory = self._clean_inventory(csv_file.name)
 
             if self.new_inventory is None or self.new_inventory.empty:
+                log.print_fail("Failed to download inventory")
+                self.new_inventory = self.last_inventory
                 return None
 
             if not self._is_inventory_valid(self.new_inventory):
+                log.print_fail("Inventory is not valid, setting to last inventory")
                 self.new_inventory = self.last_inventory
                 return None
 
