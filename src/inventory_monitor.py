@@ -147,11 +147,13 @@ class InventoryMonitor:
                 if client is not None:
                     self.clients[name] = ClientSchema().dump(client)
 
-    def _is_time_to_check_inventory(self) -> bool:
+    def _is_time_to_check_inventory(self, now: datetime.datetime) -> bool:
         if self.last_inventory_update_time is None:
             return True
 
-        time_since_last_update = time.time() - self.last_inventory_update_time
+        now_seconds = now.timestamp()
+
+        time_since_last_update = now_seconds - self.last_inventory_update_time
         time_till_next_update = get_pretty_seconds(
             self.time_between_inventory_checks - time_since_last_update
         )
@@ -367,6 +369,8 @@ class InventoryMonitor:
 
             items_to_update.append((nc_code, brand_name, item_df.total_available))
 
+        log.format_ok_blue_arrow("Done...")
+
         self._maybe_send_alerts(client, items_to_update)
 
     def _is_client_allowed_to_send_sms(self, client_id: str) -> bool:
@@ -559,7 +563,7 @@ class InventoryMonitor:
             if os.path.isfile(download_url):
                 log.print_bold(f"Downloading inventory from {download_url}...")
                 shutil.copyfile(download_url, csv_file.name)
-            elif self._is_time_to_check_inventory():
+            elif self._is_time_to_check_inventory(now):
                 log.print_bold(f"Downloading inventory from {download_url}...")
                 try:
                     self.web.url_download(
@@ -584,7 +588,7 @@ class InventoryMonitor:
             shutil.copy(csv_file.name, self.csv_file)
 
         self._write_inventory_delta_file()
-        self.last_inventory_update_time = time.time()
+        self.last_inventory_update_time = now.timestamp()
 
         def generate_new_items():
             for item in self.new_inventory.itertuples(index=False):
