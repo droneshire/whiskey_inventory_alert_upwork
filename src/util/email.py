@@ -18,7 +18,6 @@ def is_valid_email(email: str) -> bool:
 
 
 def get_email_accounts_from_password(
-    encrypt_password: str,
     encrypted_emails: T.List[T.Dict[str, str]],
     dry_run: bool = False,
 ) -> T.List[Email]:
@@ -66,10 +65,20 @@ def send_email(
     content: str,
     attachments: T.Optional[T.List[str]] = None,
     verbose: bool = False,
-) -> None:
+) -> bool:
+    """
+    Given a list of emails, try to send a the email from one of the accounts.
+    Multiple emails helps in the case you are getting throttled from sending too many emails
+    from one account.
+
+    This method should not be used to send a the same email to many accounts. That should be done
+    outside this method by calling this method multiple times.
+    """
+
     for email in emails:
         if email["quiet"]:
             continue
+
         try:
             send_email_raw(
                 email,
@@ -79,8 +88,12 @@ def send_email(
                 attachments=attachments,
                 verbose=verbose,
             )
-            return
-        except:
-            pass
+            return True
+        except Exception as exception:  # pylint: disable=broad-except
+            log.print_fail(
+                f"Failed to send email alert for {' '.join(to_addresses)} "
+                f"because of exception: {exception}"
+            )
+            continue
 
-    log.print_fail(f"Failed to send email alert for {' '.join(to_addresses)}")
+    return False

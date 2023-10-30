@@ -313,7 +313,16 @@ class InventoryManagementTest(unittest.TestCase):
         self.assertEqual(updates_sent, 4)
 
     def test_inventory_update_time(self):
-        self.assertTrue(self.monitor._is_time_to_check_inventory())
+        start = datetime.datetime(2023, 1, 1, 12, 0, 0)
+        self.assertTrue(self.monitor._is_time_to_check_inventory(now=start))
+
+        self.monitor.last_inventory_update_time = start.timestamp()
+
+        now = start + datetime.timedelta(seconds=self.monitor.time_between_inventory_checks + 1)
+        self.assertTrue(self.monitor._is_time_to_check_inventory(now=now))
+
+        now = start + datetime.timedelta(seconds=self.monitor.time_between_inventory_checks - 1)
+        self.assertFalse(self.monitor._is_time_to_check_inventory(now=now))
 
     def test_new_and_last_inventory_check(self):
         client_schema = self._setup_client(["00120"], True, True)
@@ -449,6 +458,26 @@ class InventoryManagementTest(unittest.TestCase):
 
         with ClientDb.client(self.test_client_name) as client:
             self.assertEqual(len(client.phone_numbers), len(phone_numbers))
+
+    def test_time_after_not_time_to_download_sends_text(self):
+        client_schema = self._setup_client(["00009"], True, True)
+
+        self.assertIsNotNone(self.monitor.last_inventory)
+        self.assertIsNotNone(self.monitor.new_inventory)
+
+        now = datetime.datetime(2023, 1, 1, 12, 0, 0)
+
+        # first time we will "download"..
+        new_items = self.monitor.update_inventory(self.before_csv, now)
+        self.assertIsNotNone(new_items)
+
+        # update once, should not "download", but still should have inventory set
+        new_items = self.monitor.update_inventory("fake_url", now)
+        self.assertIsNone(new_items)
+
+        # make sure we still have previous inventory tracked even when we dont download
+        self.assertIsNotNone(self.monitor.last_inventory)
+        self.assertIsNotNone(self.monitor.new_inventory)
 
 
 if __name__ == "__main__":
