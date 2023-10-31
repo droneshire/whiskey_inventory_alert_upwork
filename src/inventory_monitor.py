@@ -632,7 +632,7 @@ class InventoryMonitor:
                         db.alert_time_range_end,
                         db.alert_time_zone,
                     )
-            else:
+            elif self.verbose:
                 log.print_bright(f"Client {name} does not have a time window set")
 
     def _check_inventory(self, new_items: T.List[T.Tuple[str, str, int]]) -> None:

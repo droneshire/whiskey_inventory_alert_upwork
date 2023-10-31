@@ -47,9 +47,10 @@ class TwilioUtil:
     def update_send_window(
         self, to_number: str, start_time: int, end_time: int, timezone: str
     ) -> None:
-        log.print_bright(
-            f"Updating {timezone} send window for {to_number} to: {start_time // 60}:{start_time % 60:02} - {end_time // 60}:{end_time % 60:02} ({timezone})"
-        )
+        if self.verbose:
+            log.print_bright(
+                f"Updating {timezone} send window for {to_number} to: {start_time // 60}:{start_time % 60:02} - {end_time // 60}:{end_time % 60:02} ({timezone})"
+            )
         self.window[to_number] = {
             "start_time": start_time,
             "end_time": end_time,
