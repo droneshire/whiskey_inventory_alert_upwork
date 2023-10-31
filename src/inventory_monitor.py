@@ -147,13 +147,11 @@ class InventoryMonitor:
                 if client is not None:
                     self.clients[name] = ClientSchema().dump(client)
 
-    def _is_time_to_check_inventory(self, now: datetime.datetime) -> bool:
+    def _is_time_to_check_inventory(self, now: float) -> bool:
         if self.last_inventory_update_time is None:
             return True
 
-        now_seconds = now.timestamp()
-
-        time_since_last_update = now_seconds - self.last_inventory_update_time
+        time_since_last_update = now - self.last_inventory_update_time
         time_till_next_update = get_pretty_seconds(
             self.time_between_inventory_checks - time_since_last_update
         )
@@ -551,7 +549,7 @@ class InventoryMonitor:
     def update_inventory(
         self,
         download_url: str,
-        now: datetime.datetime = datetime.datetime.utcnow(),
+        now: float = time.time(),
         skip_db_add: bool = False,
     ) -> T.Optional[T.List[T.Tuple[str, str, int]]]:
         if self.new_inventory is not None:
@@ -592,11 +590,13 @@ class InventoryMonitor:
             shutil.copy(csv_file.name, self.csv_file)
 
         self._write_inventory_delta_file()
-        self.last_inventory_update_time = now.timestamp()
+        self.last_inventory_update_time = now
+
+        now_datetime = datetime.datetime.utcfromtimestamp(now)
 
         def generate_new_items():
             for item in self.new_inventory.itertuples(index=False):
-                is_new = skip_db_add or self._update_local_db_item("", item, now)
+                is_new = skip_db_add or self._update_local_db_item("", item, now_datetime)
                 if not is_new:
                     continue
 

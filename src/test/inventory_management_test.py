@@ -152,13 +152,13 @@ class InventoryManagementTest(unittest.TestCase):
 
         test_now = datetime.datetime.utcnow() + datetime.timedelta(hours=0)
 
-        self.monitor.update_inventory(self.before_csv, now=test_now)
+        self.monitor.update_inventory(self.before_csv, now=test_now.timestamp())
         self.monitor.check_client_inventory(client_schema, now=test_now)
 
         self.assertEqual(self.twilio_stub.num_sent, 0)
 
         test_now += datetime.timedelta(hours=11)
-        self.monitor.update_inventory(self.after_csv, now=test_now)
+        self.monitor.update_inventory(self.after_csv, now=test_now.timestamp())
         self.monitor.check_client_inventory(client_schema, now=test_now)
 
         self.assertEqual(self.twilio_stub.num_sent, 1)
@@ -319,10 +319,10 @@ class InventoryManagementTest(unittest.TestCase):
         self.monitor.last_inventory_update_time = start.timestamp()
 
         now = start + datetime.timedelta(seconds=self.monitor.time_between_inventory_checks + 1)
-        self.assertTrue(self.monitor._is_time_to_check_inventory(now=now))
+        self.assertTrue(self.monitor._is_time_to_check_inventory(now=now.timestamp()))
 
         now = start + datetime.timedelta(seconds=self.monitor.time_between_inventory_checks - 1)
-        self.assertFalse(self.monitor._is_time_to_check_inventory(now=now))
+        self.assertFalse(self.monitor._is_time_to_check_inventory(now=now.timestamp()))
 
     def test_new_and_last_inventory_check(self):
         client_schema = self._setup_client(["00120"], True, True)
@@ -468,11 +468,11 @@ class InventoryManagementTest(unittest.TestCase):
         now = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
         # first time we will "download"..
-        new_items = self.monitor.update_inventory(self.before_csv, now)
+        new_items = self.monitor.update_inventory(self.before_csv, now.timestamp())
         self.assertIsNotNone(new_items)
 
         # update once, should not "download", but still should have inventory set
-        new_items = self.monitor.update_inventory("fake_url", now)
+        new_items = self.monitor.update_inventory("fake_url", now.timestamp())
         self.assertIsNone(new_items)
 
         # make sure we still have previous inventory tracked even when we dont download
