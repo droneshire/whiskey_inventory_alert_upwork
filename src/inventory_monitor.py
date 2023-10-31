@@ -162,9 +162,11 @@ class InventoryMonitor:
         self,
         client_name: str,
         item: pd.core.frame.Series,  # Note that we're changing this to Series to reflect the datatype
-        now: datetime.datetime = datetime.datetime.utcnow(),
+        now: T.Optional[datetime.datetime] = None,
     ) -> bool:
         # check and add item into db if not there already, returns true if it is a new item
+
+        now = now or datetime.datetime.utcnow()
 
         inventory = int(item.total_available)
         nc_code = getattr(item, self.INVENTORY_CODE_KEY)
@@ -218,10 +220,12 @@ class InventoryMonitor:
         self,
         client_time_out_of_stock_hours: int,
         nc_code: int,
-        now: datetime.datetime = datetime.datetime.utcnow(),
+        now: T.Optional[datetime.datetime] = None,
     ) -> bool:
         if client_time_out_of_stock_hours == 0:
             return False
+
+        now = now or datetime.datetime.utcnow()
 
         with ClientDb.item(nc_code) as db:
             if db is None:
@@ -246,12 +250,9 @@ class InventoryMonitor:
 
         return False
 
-    def check_client_new_inventory(
+    def check_client_untracked_new_inventory(
         self, client: ClientSchema, new_items: T.List[T.Tuple[str, str, int]] = None
     ) -> None:
-        if self.verbose:
-            log.print_bold(f"Checking new inventory")
-
         should_update_new_data = client["update_on_new_data"]
 
         if not should_update_new_data:
@@ -262,17 +263,21 @@ class InventoryMonitor:
             log.print_normal_arrow("No new items to check")
             return
 
+        log.print_bright(f"Checking {len(new_items)} new items...")
+
         items_to_update = [i for i in new_items if i not in client["items"]]
         self._maybe_send_alerts(client, new_items, is_new_inventory=True)
 
     def check_client_inventory(
-        self, client: ClientSchema, now: datetime.datetime = datetime.datetime.utcnow()
+        self, client: ClientSchema, now: T.Optional[datetime.datetime] = None
     ) -> None:
         if self.verbose:
             log.print_bold(f"Checking {json.dumps(client, indent=4)}")
 
         if not client:
             return
+
+        now = now or datetime.datetime.utcnow()
 
         with ClientDb.client(client["id"]) as db:
             if db is None:
@@ -366,8 +371,6 @@ class InventoryMonitor:
                 continue
 
             items_to_update.append((nc_code, brand_name, item_df.total_available))
-
-        log.format_ok_blue_arrow("Done...")
 
         self._maybe_send_alerts(client, items_to_update)
 
@@ -549,13 +552,15 @@ class InventoryMonitor:
     def update_inventory(
         self,
         download_url: str,
-        now: float = time.time(),
+        now: float = None,
         skip_db_add: bool = False,
     ) -> T.Optional[T.List[T.Tuple[str, str, int]]]:
         if self.new_inventory is not None:
             self.last_inventory = self.new_inventory
             self.new_inventory = None
             gc.collect()
+
+        now = now or time.time()
 
         with tempfile.NamedTemporaryFile(suffix=".csv") as csv_file:
             if os.path.isfile(download_url):
@@ -643,8 +648,12 @@ class InventoryMonitor:
             log.print_bold(f"{'─' * 80}")
             log.print_bold(f"Checking inventory for {name}...")
             self._update_sms_time_window(name)
+            log.print_bold(f"Checking monitored inventory")
             self.check_client_inventory(client)
-            self.check_client_new_inventory(client, new_items)
+            log.print_ok_blue_arrow("...Done")
+            log.print_bold(f"Checking untracked new inventory")
+            self.check_client_untracked_new_inventory(client, new_items)
+            log.print_ok_blue_arrow("...Done")
 
         log.print_bold(f"{'─' * 80}")
 
