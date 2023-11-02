@@ -70,11 +70,13 @@ def main() -> None:
     )
 
     monitor.init()
-    inventory = monitor.update_inventory(InventoryMonitor.DOWNLOAD_URL)
+    inventory = monitor.update_inventory(InventoryMonitor.DOWNLOAD_URL, skip_db_add=True)
 
     if len(inventory) == 0:
         log.print_fail("No inventory to use!")
         return
+
+    log.print_bright(f"Adding {len(inventory)} inventory to firebase...")
 
     db_data = {"inventory": {"items": {}}}
     for item in track(inventory, description="Inventory", total=len(inventory)):

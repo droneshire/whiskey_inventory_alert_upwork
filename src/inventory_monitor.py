@@ -383,7 +383,7 @@ class InventoryMonitor:
     def _maybe_send_alerts(
         self, client: ClientSchema, items_to_update: T.List[T.Tuple], is_new_inventory: bool = False
     ) -> None:
-        message = "NC ABC Inventory Alert\n" if is_new_inventory else "NC ABC New Item Alert\n"
+        message = "NC ABC Inventory Alert\n" if not is_new_inventory else "NC ABC New Item Alert\n"
 
         for info in items_to_update:
             nc_code, brand_name, total_available = info

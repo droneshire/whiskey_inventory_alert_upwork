@@ -331,8 +331,8 @@ class FirebaseClient:
     def add_items_to_firebase(self, client: str, items_dict: defs.Client) -> None:
         log.print_warn(f"Adding items to firebase")
         doc_ref: DocumentReference = self.clients_ref.document(client)
-        items_dict = doc_ref.get(["inventory.items"]).to_dict()
-        log.print_bold(f"Items before: {len(items_dict['inventory']['items'].keys())}")
+        current_items_dict = doc_ref.get(["inventory.items"]).to_dict()
+        log.print_bold(f"Items before: {len(current_items_dict['inventory']['items'].keys())}")
         doc_ref.set(items_dict, merge=["inventory.items"])
-        items_dict = doc_ref.get(["inventory.items"]).to_dict()
-        log.print_bold(f"Items after: {len(items_dict['inventory']['items'].keys())}")
+        after_items_dict = doc_ref.get(["inventory.items"]).to_dict()
+        log.print_bold(f"Items after: {len(after_items_dict['inventory']['items'].keys())}")
