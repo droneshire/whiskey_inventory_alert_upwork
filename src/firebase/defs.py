@@ -47,6 +47,8 @@ class Notifications(T.TypedDict):
 
 class Preferences(T.TypedDict):
     updateOnNewData: bool
+    enableNewDataEmailAlerts: bool
+    enableNewDataSmsAlerts: bool
     notifications: Notifications
 
 
@@ -72,6 +74,8 @@ NULL_CLIENT = Client(
     ),
     inventory=Inventory(items=[], inventory_change=1, min_hours_since_out_of_stock=0),
     preferences=Preferences(
+        enableNewDataEmailAlerts=True,
+        enableNewDataSmsAlerts=False,
         updateOnNewData=False,
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),

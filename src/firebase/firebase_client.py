@@ -225,6 +225,12 @@ class FirebaseClient:
             db.update_on_new_data = safe_get(
                 db_client, "preferences.updateOnNewData".split("."), False
             )
+            db.enable_new_data_sms_alert = safe_get(
+                db_client, "preferences.enableNewDataSmsAlerts".split("."), False
+            )
+            db.enable_new_data_email_alert = safe_get(
+                db_client, "preferences.enableNewDataEmailAlerts".split("."), False
+            )
             db.threshold_inventory = safe_get(db_client, "inventory.inventoryChange".split("."), 0)
             db.min_hours_since_out_of_stock = safe_get(
                 db_client, "inventory.min_hours_since_out_of_stock".split("."), 0

@@ -51,5 +51,7 @@ create_test_db:
 	$(RUN_PY) database.executables.add_to_database --item 00137
 	$(RUN_PY) database.executables.add_to_database --item 70111
 
+clean:
+	rm -rf ./logs/*
 
 .PHONY: install format check_format check_types pylint lint test creator_bot account_bot server

@@ -385,6 +385,9 @@ class InventoryMonitor:
     ) -> None:
         message = "NC ABC Inventory Alert\n" if not is_new_inventory else "NC ABC New Item Alert\n"
 
+        new_data_email_alerts = not is_new_inventory or client["enable_new_data_email_alert"]
+        new_data_sms_alerts = not is_new_inventory or client["enable_new_data_sms_alert"]
+
         for info in items_to_update:
             nc_code, brand_name, total_available = info
             message += (
@@ -427,14 +430,19 @@ class InventoryMonitor:
             log.print_normal_arrow("Client is not allowed to send SMS")
             return
 
-        if client["phone_numbers"] and client["phone_alerts"] and self.twilio_util:
+        if (
+            client["phone_numbers"]
+            and client["phone_alerts"]
+            and new_data_sms_alerts
+            and self.twilio_util
+        ):
             for phone_number in client["phone_numbers"]:
                 self.twilio_util.send_sms_if_in_window(
                     phone_number["number"],
                     sms_message,
                 )
 
-        if client["email"] and client["email_alerts"] and self.email:
+        if client["email"] and client["email_alerts"] and new_data_email_alerts and self.email:
             email.send_email(
                 emails=[self.email],
                 to_addresses=[client["email"]],
