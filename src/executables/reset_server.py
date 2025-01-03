@@ -76,7 +76,9 @@ def main() -> None:
         outfile.write(str(os.getpid()))
 
     credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
-    firebase_server: FirebaseAdmin = FirebaseAdmin(credentials_file=credentials_file)
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    creds_path = os.path.join(root_dir, "config", credentials_file)
+    firebase_server: FirebaseAdmin = FirebaseAdmin(credentials_file=creds_path)
 
     try:
         while True:

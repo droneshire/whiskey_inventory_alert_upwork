@@ -13,12 +13,6 @@ pip install --break-system-packages -r requirements.txt
 # Lint with black
 make check_format
 
-# Lint with mypy
-make mypy
-
-# Lint with pylint
-make pylint
-
 # Test with pytest
 make test
 

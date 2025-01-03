@@ -17,3 +17,7 @@ yaspin
 requests
 pandas
 bs4
+yagmail
+
+types-requests
+pandas-stubs
