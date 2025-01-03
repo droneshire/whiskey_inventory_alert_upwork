@@ -1,11 +1,13 @@
 services:
   liquor_container:
     image: "ryeager12/liquor-tracker:liquor"
+    # stdin_open: true # docker run -i
+    # tty: true        # docker run -t
     pull_policy: always
     env_file:
       - ../.env
     volumes:
-      - ../config:/config
+      - ../config:/app/config
     networks:
       - compose_network
     restart: always

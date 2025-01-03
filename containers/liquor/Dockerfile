@@ -14,3 +14,5 @@ RUN apt-get update && \
 RUN make install
 
 RUN make test
+
+ENTRYPOINT ["/entrypoint.sh"]
