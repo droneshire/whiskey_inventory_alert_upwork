@@ -612,8 +612,8 @@ class InventoryMonitor:
                     is_new = skip_db_add or self._update_local_db_item("", item, now_datetime)
                     if not is_new:
                         continue
-                except IntegrityError as e:
-                    log.print_fail(f"IntegrityError: {e}")
+                except Exception as e:  # pylint: disable=broad-except
+                    log.print_fail(f"{e}")
                     continue
 
                 inventory_available = int(item.total_available)
