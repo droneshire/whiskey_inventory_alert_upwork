@@ -8,6 +8,7 @@ services:
       - ../.env
     volumes:
       - ../config:/app/config
+      - ../logs:/app/logs
     networks:
       - compose_network
     restart: always
