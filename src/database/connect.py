@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.scoping import ScopedSession
 from sqlalchemy_utils import database_exists
+from util.file_util import make_sure_path_exists
 
 ENGINE: T.Dict[str, Engine] = {}
 THREAD_SAFE_SESSION_FACTORY: T.Dict[str, ScopedSession] = {}
@@ -122,6 +123,8 @@ def init_database(log_dir: str, db_name: str, force: bool = False) -> None:
     db_uri = "sqlite:///" + db_file
 
     print(f"Initializing database {db_name} at {db_uri}")
+
+    make_sure_path_exists(os.path.dirname(db_file))
 
     engine = init_engine(db_uri, db_name)
 

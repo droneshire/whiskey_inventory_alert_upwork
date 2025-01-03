@@ -165,7 +165,7 @@ class InventoryMonitor:
     ) -> bool:
         # check and add item into db if not there already, returns true if it is a new item
 
-        now = now or datetime.datetime.utcnow()
+        now = now or datetime.datetime.now(datetime.timezone.utc)
 
         inventory = int(item.total_available)
         nc_code = getattr(item, self.INVENTORY_CODE_KEY)
