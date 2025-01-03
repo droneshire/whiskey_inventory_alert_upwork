@@ -110,6 +110,13 @@ def is_database_initialized(db: str) -> bool:
     return db in THREAD_SAFE_SESSION_FACTORY
 
 
+def remove_database(log_dir: str, db_name: str) -> None:
+    db_file = os.path.join(log_dir, "database", db_name)
+    if os.path.isfile(db_file):
+        print(f"Deleting existing database!")
+        os.remove(db_file)
+
+
 def init_database(log_dir: str, db_name: str, force: bool = False) -> None:
     db_file = os.path.join(log_dir, "database", db_name)
     db_uri = "sqlite:///" + db_file

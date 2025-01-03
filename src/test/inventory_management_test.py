@@ -8,8 +8,8 @@ import unittest
 import dotenv
 
 from database.client import DEFAULT_DB, ClientDb
-from database.connect import close_database, init_database, remove_database
-from database.models.client import Client, ClientSchema
+from database.connect import close_engine, init_database, remove_database
+from database.models.client import ClientSchema
 from inventory_monitor import InventoryMonitor
 from util import email, log
 from util.twilio_util import TwilioUtil
@@ -100,7 +100,7 @@ class InventoryManagementTest(unittest.TestCase):
         if self.temp_diff_file and os.path.isfile(self.temp_diff_file.name):
             os.remove(self.temp_diff_file.name)
 
-        close_database()
+        close_engine(DEFAULT_DB)
         remove_database(self.test_dir, DEFAULT_DB)
 
         self.monitor = None
