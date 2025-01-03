@@ -510,9 +510,9 @@ class InventoryMonitor:
             with pd.read_csv(csv_file, chunksize=chunk_size) as reader:
                 for chunk in reader:
                     # clean up the code column
-                    chunk[self.RAW_INVENTORY_CODE_KEY] = chunk[self.RAW_INVENTORY_CODE_KEY].str.replace(
-                        r"=\"(.*)\"", r"\1", regex=True
-                    )
+                    chunk[self.RAW_INVENTORY_CODE_KEY] = chunk[
+                        self.RAW_INVENTORY_CODE_KEY
+                    ].str.replace(r"=\"(.*)\"", r"\1", regex=True)
                     # Sanitize column names
                     chunk.columns = [_sanitize_column_name(col) for col in chunk.columns]
 
