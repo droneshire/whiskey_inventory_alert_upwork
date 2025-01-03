@@ -1,0 +1,16 @@
+# action.yml
+name: "Python Docker Action"
+description: "Run python linting and tests"
+inputs:
+  version:
+    description: "App Version"
+    required: true
+    default: "v1.0.0"
+outputs:
+  result:
+    description: "Return result of the action"
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.version }}

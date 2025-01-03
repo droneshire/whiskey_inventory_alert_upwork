@@ -59,7 +59,9 @@ def parse_args() -> argparse.Namespace:
         help="Rotate the logs and tar them up",
     )
     parser.add_argument(
-        "--enable-alarm", action="store_true", help="Enable sms alerts when crashes occur"
+        "--enable-alarm",
+        action="store_true",
+        help="Enable sms alerts when crashes occur",
     )
 
     parser.add_argument(
@@ -94,7 +96,7 @@ def get_credentials_file() -> str:
     exec_dir = os.path.dirname(os.path.realpath(__file__))
     src_dir = os.path.dirname(exec_dir)
     top_dir = os.path.dirname(src_dir)
-    return os.path.join(top_dir, credentials_file)
+    return os.path.join(top_dir, "config", credentials_file)
 
 
 def main() -> None:

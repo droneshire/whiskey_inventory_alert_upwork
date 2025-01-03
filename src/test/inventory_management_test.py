@@ -2,7 +2,6 @@ import datetime
 import os
 import shutil
 import tempfile
-import time
 import typing as T
 import unittest
 
@@ -11,7 +10,6 @@ import dotenv
 from database.client import DEFAULT_DB, ClientDb
 from database.connect import close_database, init_database, remove_database
 from database.models.client import Client, ClientSchema
-from database.models.item import ItemSchema
 from inventory_monitor import InventoryMonitor
 from util import email, log
 from util.twilio_util import TwilioUtil

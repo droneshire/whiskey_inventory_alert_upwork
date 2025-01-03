@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  redis_container:
+    image: "$(DOCKERHUB_USERNAME)/$(DOCKERHUB_REPO):liquor"
+    pull_policy: always
+    env_file:
+      - ../.env
+    volumes:
+      - ../config:/config
+    networks:
+      - compose_network
+    restart: always
+
+
+networks:
+  compose_network:

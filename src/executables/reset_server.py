@@ -5,11 +5,11 @@ for a boolean value of True. If the value is True,
 then the script will reset the server by killing
 any outstanding bot processes and restarting them.
 """
+
 import argparse
 import os
 import subprocess
 import sys
-import time
 import typing as T
 
 import dotenv

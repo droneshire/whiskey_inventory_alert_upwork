@@ -1,6 +1,5 @@
 import datetime
 import os
-import time
 import typing as T
 from contextlib import contextmanager
 
@@ -10,7 +9,6 @@ from sqlalchemy.sql import func
 from database.connect import ManagedSession
 from database.models.client import Client, PhoneNumber, TrackingItem
 from database.models.item import Item, ItemSchema
-from database.models.item_association import ItemAssociationTable
 from util import log
 
 dotenv.load_dotenv(".env")

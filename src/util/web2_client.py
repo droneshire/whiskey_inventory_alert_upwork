@@ -1,4 +1,3 @@
-import time
 import typing as T
 
 import requests

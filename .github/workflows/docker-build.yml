@@ -1,0 +1,49 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        required: true
+        description: "Flag to run Docker build"
+        default: "false" # Set to "true" when triggered by other workflows
+      branch:
+        required: true
+        description: "Branch to build"
+        default: "main"
+
+jobs:
+  build-discord-logger:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.run == 'true' && github.event.inputs.branch == 'main' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push the base python image # this must be first!
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./containers/base_py/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:base_py
+      - name: Build and push redis
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./containers/redis/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:redis
+      - name: Build and push postgres-server
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./containers/postgres/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:postgres

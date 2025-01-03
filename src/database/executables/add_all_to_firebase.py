@@ -9,14 +9,12 @@ import typing as T
 import dotenv
 from rich.progress import track
 
-from database.client import DEFAULT_DB, ClientDb
+from database.client import DEFAULT_DB
 from database.connect import init_database
 from database.models.client import Client
 from firebase.defs import Actions
 from inventory_monitor import InventoryMonitor
 from util import log
-from util.email import Email
-from util.twilio_util import TwilioUtil
 
 
 def parse_args() -> argparse.Namespace:
