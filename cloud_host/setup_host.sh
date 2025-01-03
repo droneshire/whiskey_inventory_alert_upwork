@@ -155,10 +155,7 @@ cd $REPO_DIR
 
 mkdir -p $LOGS_DIR || true
 mkdir -p $CONFIG_DIR || true
-mkdir -p $DATABASE_DIR/volumes/postgres || true
-mkdir -p $DATABASE_DIR/volumes/redis || true
 mkdir -p $CONTAINERS_DIR || true
-mkdir -p $ENV_DIR || true
 
 cp $FIREBASE_CREDENTIALS_FILE_SOURCE $FIREBASE_CREDENTIALS_FILE_DEST || true
 cp $ENV_FILE_SOURCE $ENV_FILE_DEST || true

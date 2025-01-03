@@ -1,5 +1,5 @@
 services:
-  redis_container:
+  liquor_container:
     image: "ryeager12/liquor-tracker:liquor"
     pull_policy: always
     env_file:
