@@ -7,6 +7,9 @@ WORKDIR /app
 # Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
+COPY ./containers/liquor/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 RUN apt-get update && \
     apt-get install -y make && \
     rm -rf /var/lib/apt/lists/*
