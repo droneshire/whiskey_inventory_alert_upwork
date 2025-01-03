@@ -9,11 +9,10 @@ import typing as T
 
 import deepdiff
 import pandas as pd
-from rich.progress import track
+from sqlalchemy.exc import IntegrityError
 
 from database.client import ClientDb
-from database.models.client import Client, ClientSchema
-from database.models.item import ItemSchema
+from database.models.client import ClientSchema
 from firebase.firebase_client import FirebaseClient
 from headers import HEADERS
 from util import email, log, wait, web2_client
@@ -511,8 +510,8 @@ class InventoryMonitor:
             with pd.read_csv(csv_file, chunksize=chunk_size) as reader:
                 for chunk in reader:
                     # clean up the code column
-                    chunk[self.RAW_INVENTORY_CODE_KEY].replace(
-                        r"=\"(.*)\"", r"\1", regex=True, inplace=True
+                    chunk[self.RAW_INVENTORY_CODE_KEY] = chunk[self.RAW_INVENTORY_CODE_KEY].replace(
+                        r"=\"(.*)\"", r"\1", regex=True
                     )
                     # Sanitize column names
                     chunk.columns = [_sanitize_column_name(col) for col in chunk.columns]
@@ -605,12 +604,16 @@ class InventoryMonitor:
         self._write_inventory_delta_file()
         self.last_inventory_update_time = now
 
-        now_datetime = datetime.datetime.utcfromtimestamp(now)
+        now_datetime = datetime.datetime.fromtimestamp(now, datetime.timezone.utc)
 
         def generate_new_items():
             for item in self.new_inventory.itertuples(index=False):
-                is_new = skip_db_add or self._update_local_db_item("", item, now_datetime)
-                if not is_new:
+                try:
+                    is_new = skip_db_add or self._update_local_db_item("", item, now_datetime)
+                    if not is_new:
+                        continue
+                except IntegrityError as e:
+                    log.print_fail(f"IntegrityError: {e}")
                     continue
 
                 inventory_available = int(item.total_available)
@@ -675,7 +678,8 @@ class InventoryMonitor:
         self.skip_alerts = False
 
     def run(self) -> None:
-        self.firebase_client.health_ping()
+        if self.firebase_client:
+            self.firebase_client.health_ping()
 
         new_items = self.update_inventory(self.download_url)
 

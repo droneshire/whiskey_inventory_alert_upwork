@@ -61,7 +61,7 @@ class InventoryManagementTest(unittest.TestCase):
 
         dotenv.load_dotenv(".env")
 
-        init_database(self.test_dir, DEFAULT_DB, Client, True)
+        init_database(self.test_dir, DEFAULT_DB, True)
 
         self.before_csv = os.path.join(self.test_dir, "inventory_before.csv")
         self.after_csv = os.path.join(self.test_dir, "inventory_after.csv")

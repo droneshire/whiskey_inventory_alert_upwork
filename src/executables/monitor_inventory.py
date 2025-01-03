@@ -113,7 +113,7 @@ def main() -> None:
         log.tar_logs(args.log_dir, "monitor_inventory", remove_after=True)
     log.setup_log(args.log_level, args.log_dir, "db_convert")
 
-    init_database(args.log_dir, DEFAULT_DB, Client, args.force_update)
+    init_database(args.log_dir, DEFAULT_DB, args.force_update)
 
     twilio_util = TwilioUtil(
         my_number=os.environ.get("TWILIO_FROM_SMS_NUMBER"),

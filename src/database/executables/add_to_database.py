@@ -65,7 +65,7 @@ def main() -> None:
 
     dotenv.load_dotenv(".env")
     database_name = DEFAULT_DB
-    init_database(args.log_dir, database_name, Client)
+    init_database(args.log_dir, database_name)
 
     ClientDb.add_client(args.name, args.email, [args.phone_number])
 

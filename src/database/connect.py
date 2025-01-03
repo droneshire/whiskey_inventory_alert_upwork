@@ -4,53 +4,90 @@ import typing as T
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.orm.scoping import ScopedSession
 from sqlalchemy_utils import database_exists
 
-from util import log
-from util.file_util import make_sure_path_exists
+ENGINE: T.Dict[str, Engine] = {}
+THREAD_SAFE_SESSION_FACTORY: T.Dict[str, ScopedSession] = {}
 
-engine = None
-thread_safe_session_factory = None
-
-Base = declarative_base()
+Base = declarative_base(name="Base")
 
 
-def init_engine(uri, **kwargs) -> Engine:
-    global engine
-    if engine is None:
-        engine = create_engine(uri, **kwargs)
-    return engine
+def get_table_name(base_name: str, verbose: bool = False) -> str:
+    if verbose:
+        print(f"base_name: {base_name}")
+    return base_name
 
 
-def init_session_factory() -> ScopedSession:
-    """Initialize the thread_safe_session_factory."""
-    global engine, thread_safe_session_factory
-    if engine is None:
+def init_engine(uri: str, db: str, **kwargs: T.Any) -> Engine:
+    global ENGINE  # pylint: disable=global-variable-not-assigned
+    if db not in ENGINE:
+        ENGINE[db] = create_engine(uri, **kwargs)
+    return ENGINE[db]
+
+
+def clear_db() -> None:
+    global ENGINE  # pylint: disable=global-statement
+    global THREAD_SAFE_SESSION_FACTORY  # pylint: disable=global-statement
+    ENGINE = {}
+    THREAD_SAFE_SESSION_FACTORY = {}
+
+
+def close_engine(db: str) -> None:
+    global ENGINE  # pylint: disable=global-statement, global-variable-not-assigned
+    global THREAD_SAFE_SESSION_FACTORY  # pylint: disable=global-statement, global-variable-not-assigned
+    if db in ENGINE:
+        ENGINE[db].dispose()
+        del ENGINE[db]
+    if db in THREAD_SAFE_SESSION_FACTORY:
+        del THREAD_SAFE_SESSION_FACTORY[db]
+
+
+def _init_session_factory(db: str) -> ScopedSession:
+    """Initialize the THREAD_SAFE_SESSION_FACTORY."""
+    global ENGINE, THREAD_SAFE_SESSION_FACTORY  # pylint: disable=global-variable-not-assigned
+    if db not in ENGINE:
         raise ValueError(
-            "Initialize engine by calling init_engine before calling init_session_factory!"
+            "Initialize ENGINE by calling init_engine before calling _init_session_factory!"
         )
-    if thread_safe_session_factory is None:
-        thread_safe_session_factory = scoped_session(sessionmaker(bind=engine))
-    return thread_safe_session_factory
+    if db not in THREAD_SAFE_SESSION_FACTORY:
+        session_factory = sessionmaker(bind=ENGINE[db])
+        THREAD_SAFE_SESSION_FACTORY[db] = scoped_session(session_factory)
+    return THREAD_SAFE_SESSION_FACTORY[db]
+
+
+def is_session_factory_initialized() -> bool:
+    return bool(THREAD_SAFE_SESSION_FACTORY)
 
 
 @contextlib.contextmanager
-def ManagedSession():
+def ManagedSession(  # pylint: disable=invalid-name
+    db: T.Optional[str] = None,
+) -> T.Iterator[ScopedSession]:
     """Get a session object whose lifecycle, commits and flush are managed for you.
     Expected to be used as follows:
     ```
-    with ManagedSession() as session:            # multiple db_operations are done within one session.
-        db_operations.select(session, **kwargs)  # db_operations is expected not to worry about session handling.
-        db_operations.insert(session, **kwargs)  # after the with statement, the session commits to the database.
+    # multiple db_operations are done within one session.
+    with ManagedSession() as session:
+        # db_operations is expected not to worry about session handling.
+        db_operations.select(session, **kwargs)
+        # after the with statement, the session commits to the database.
+        db_operations.insert(session, **kwargs)
     ```
     """
-    global thread_safe_session_factory
-    if thread_safe_session_factory is None:
-        raise ValueError("Call init_session_factory before using ManagedSession!")
-    session = thread_safe_session_factory()
+    global THREAD_SAFE_SESSION_FACTORY  # pylint: disable=global-variable-not-assigned
+    if db is None:
+        # assume we're just using the default db
+        db = list(THREAD_SAFE_SESSION_FACTORY.keys())[0]
+
+    if db not in THREAD_SAFE_SESSION_FACTORY:
+        raise ValueError(f"Call _init_session_factory for {db} before using ManagedSession!")
+
+    session = THREAD_SAFE_SESSION_FACTORY[db]()
+
     try:
         yield session
         session.commit()
@@ -62,40 +99,40 @@ def ManagedSession():
         raise
     finally:
         # source:
-        # https://stackoverflow.com/questions/21078696/why-is-my-scoped-session-raising-an-attributeerror-session-object-has-no-attr
-        thread_safe_session_factory.remove()
+        # https://stackoverflow.com/questions/
+        # 21078696/why-is-my-scoped-session-raising-an-attributeerror-session-object-has-no-attr
+        THREAD_SAFE_SESSION_FACTORY[db].remove()
 
 
-def remove_database(log_dir: str, db_name: str) -> None:
+def is_database_initialized(db: str) -> bool:
+    """Check if the database is initialized."""
+    global THREAD_SAFE_SESSION_FACTORY  # pylint: disable=global-variable-not-assigned
+    return db in THREAD_SAFE_SESSION_FACTORY
+
+
+def init_database(log_dir: str, db_name: str, force: bool = False) -> None:
     db_file = os.path.join(log_dir, "database", db_name)
-    if os.path.isfile(db_file):
-        log.print_warn(f"Deleting existing database!")
-        os.remove(db_file)
+    db_uri = "sqlite:///" + db_file
 
+    print(f"Initializing database {db_name} at {db_uri}")
 
-def init_database(log_dir: str, db_name: str, db_model_class: T.Any, force: bool = False) -> None:
-    db_file = os.path.join(log_dir, "database", db_name)
-    sql_db = "sqlite:///" + db_file
+    engine = init_engine(db_uri, db_name)
 
-    if force:
-        remove_database(log_dir, db_name)
-
-    make_sure_path_exists(db_file)
-
-    engine = init_engine(sql_db)
     if database_exists(engine.url):
-        log.print_bold(f"Found existing database")
+        print("Found existing database")
+
+        if force:
+            print("Forcing database initialization")
+            Base.metadata.drop_all(bind=engine)
     else:
-        log.print_ok_blue(f"Creating new database!")
-        db_model_class.metadata.create_all(bind=engine)
-    init_session_factory()
+        print("Creating new database!")
 
+    try:
+        Base.metadata.create_all(bind=engine)
 
-def close_database() -> None:
-    global engine, thread_safe_session_factory
-    if thread_safe_session_factory is not None:
-        thread_safe_session_factory.remove()
-        thread_safe_session_factory = None
-    if engine is not None:
-        engine.dispose()
-        engine = None
+        _init_session_factory(db_name)
+    except KeyboardInterrupt as exc:
+        raise KeyboardInterrupt from exc
+    except OperationalError as exc:
+        print(f"Failed to initialize database: {exc}")
+        print("Continuing without db connection...")

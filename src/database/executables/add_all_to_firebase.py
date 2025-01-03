@@ -53,7 +53,7 @@ def main() -> None:
 
     log.setup_log("ERROR", args.log_dir, "db_convert")
 
-    init_database(args.log_dir, DEFAULT_DB, Client, args.force_update)
+    init_database(args.log_dir, DEFAULT_DB, args.force_update)
 
     monitor: InventoryMonitor = InventoryMonitor(
         twilio_util=None,

@@ -4,6 +4,7 @@ PIP_COMPILE = pip-compile
 
 # Core paths
 LOG_PATH=$(PWD)/logs
+CONFIG_PATH=$(PWD)/config
 SOURCE_PATH=$(PWD)/src
 PACKAGES_PATH=$(PWD)/packages
 DROPLET_DEST_DIR ?= /root/droplet
@@ -53,7 +54,8 @@ config_droplet: sync_droplet_bootstrap
 	ssh $(SSH_CONFIG_ALIAS) "cd $(DROPLET_DEST_DIR) && ./setup_host.sh $(DROPLET_BACKEND_ID)"
 
 create_dirs:
-	mkdir -p $(BUILD_PATH)
+	mkdir -p $(LOG_PATH)
+	mkdir -p $(CONFIG_PATH)
 
 init: create_dirs
 	$(PYTHON) -m venv $(PY_VENV_REL_PATH)
