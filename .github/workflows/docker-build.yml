@@ -26,24 +26,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build and push the base python image # this must be first!
+      - name: Build and push the application image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./containers/base_py/Dockerfile
+          file: ./containers/liquor/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:base_py
-      - name: Build and push redis
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./containers/redis/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:redis
-      - name: Build and push postgres-server
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./containers/postgres/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:postgres
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:liquor
