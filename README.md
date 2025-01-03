@@ -39,13 +39,7 @@ You'll need the `SID`, `AUTH_TOKEN`, and phone number down below.
 
 Set up a linux device to deploy the inventory manager bot to.
 
-Create an ssh key for github and add it as a [Deploy Key](https://github.com/droneshire/whiskey_inventory_alert_upwork/settings/keys) to this repo.
 
-```
-ssh-keygen -t ed25519 -C <YOUR EMAIL> -f /root/.ssh/id_ed25519 -q -N ""
-```
-
-Copy `digital_ocean_droplet.sh` to the host machine and run it.
 
 ### Config Files
 
@@ -82,7 +76,7 @@ GOOGLE_APPLICATION_CREDENTIALS="firebase_service_account.json"
 
 - **`firebase_service_account.json`**
 
-Finally, add a `firebase_service_account.json` to the repo root directory. The contents of this file can be found [here](https://console.firebase.google.com/u/0/project/inventory-860f0/settings/serviceaccounts/adminsdk).
+Finally, add a `firebase_service_account.json` to the repo `config` directory. The contents of this file can be found [here](https://console.firebase.google.com/u/0/project/inventory-860f0/settings/serviceaccounts/adminsdk).
 
 # Database
 

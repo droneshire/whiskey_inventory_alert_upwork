@@ -6,6 +6,8 @@ PIP_COMPILE = pip-compile
 LOG_PATH=$(PWD)/logs
 SOURCE_PATH=$(PWD)/src
 PACKAGES_PATH=$(PWD)/packages
+DROPLET_DEST_DIR ?= /root/droplet
+DROPLET_BACKEND_ID=whiskey_inventory_alert_upwork
 PY_VENV=$(PWD)/venv
 PY_SITE_PACKAGES=$(PY_VENV)/lib/python3.12/site-packages
 
@@ -20,6 +22,35 @@ PY_FIND_COMMAND = find . -name '*.py' | grep -vE "($(PY_VENV_REL_PATH))"
 BLACK_CMD = $(RUN_PY_DIRECT) black --line-length 100 $(shell $(PY_FIND_COMMAND))
 # Consolidated mypy config to pyproject.toml
 MYPY_CONFIG=$(SOURCE_PATH)/mypy_config.ini
+
+
+sync_files:
+	./cloud_host/flatten_makefile.sh ./Makefile
+	scp -r ./config/* $(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)/$(DROPLET_BACKEND_ID)/config
+	scp .env $(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)/$(DROPLET_BACKEND_ID)
+	scp ./Makefile.flattened $(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)/$(DROPLET_BACKEND_ID)/Makefile
+	scp ./containers/docker-compose.yml $(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)/$(DROPLET_BACKEND_ID)/containers
+
+
+sync_droplet_bootstrap:
+	./cloud_host/flatten_makefile.sh ./Makefile
+	ssh $(SSH_CONFIG_ALIAS) "mkdir -p $(DROPLET_DEST_DIR)"
+	scp ./containers/docker-compose.yml $(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)
+	scp ./Makefile.flattened $(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)/Makefile
+	scp -r ./config/* \
+		.env \
+		./cloud_host/setup_host.sh \
+		./cloud_host/install_docker.sh \
+		./cloud_host/run_containers.sh \
+		./cloud_host/inputrc \
+		$(SSH_CONFIG_ALIAS):$(DROPLET_DEST_DIR)
+	ssh $(SSH_CONFIG_ALIAS) "chmod +x $(DROPLET_DEST_DIR)/setup_host.sh \
+		$(DROPLET_DEST_DIR)/install_docker.sh \
+		$(DROPLET_DEST_DIR)/run_containers.sh"
+
+config_droplet: sync_droplet_bootstrap
+	echo "Configuring droplet with backend id: $(DROPLET_BACKEND_ID)"
+	ssh $(SSH_CONFIG_ALIAS) "cd $(DROPLET_DEST_DIR) && ./setup_host.sh $(DROPLET_BACKEND_ID)"
 
 create_dirs:
 	mkdir -p $(BUILD_PATH)
@@ -76,6 +107,26 @@ clean:
 	rm -rf ./logs/*
 	rm -rf $(PY_VENV)
 
-.PHONY: install format check_format check_types pylint
+###########
+### Docker Compose
+### The _compose_ versions of the docker commands pull images from a registry
+###########
+DOCKER_REGISTRY_REPO_NAME?=liquor-tracker
+DOCKER_USERNAME?=ryeager12
+DOCKER_COMPOSE_CMD := $(shell command -v docker-compose 2> /dev/null || echo "docker compose")
+
+docker_compose_clean:
+	docker image prune -a
+	docker system prune -a --volumes
+
+docker_compose_up:
+	$(DOCKER_COMPOSE_CMD) -f containers/docker-compose.yml up -d
+
+docker_compose_down:
+	$(DOCKER_COMPOSE_CMD) -f containers/docker-compose.yml down -v
+
+.PHONY: docker_compose_clean docker_compose_up docker_compose_down
+.PHONY: sync_files sync_droplet_bootstrap config_droplet
+.PHONY: init install format check_format check_types pylint
 .PHONY: lint test creator_bot account_bot server reset_server
 .PHONY: create_test_db clean inventory_bot_prod inventory_bot_dev create_dirs

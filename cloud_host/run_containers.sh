@@ -13,8 +13,6 @@ echo "Setting up the droplet for repo location: $REPO_DIR"
 
 cd $REPO_DIR
 
-make postgres_down || true
-
 echo "Running docker-compose down"
 make docker_compose_down > /dev/null 2>&1
 echo "Running docker-compose up"

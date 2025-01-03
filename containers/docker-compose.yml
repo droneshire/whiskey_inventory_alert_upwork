@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   redis_container:
-    image: "$(DOCKERHUB_USERNAME)/$(DOCKERHUB_REPO):liquor"
+    image: "ryeager12/liquor-tracker:liquor"
     pull_policy: always
     env_file:
       - ../.env

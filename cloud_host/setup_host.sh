@@ -6,7 +6,7 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-REPO_GITHUB="${REPO_GITHUB:=git@github.com:droneshire/<TODO>.git}"
+REPO_GITHUB="${REPO_GITHUB:=git@github.com:droneshire/whiskey_inventory_alert_upwork.git}"
 REPO_NAME=$(basename ${REPO_GITHUB%.*})
 
 echo -e "${GREEN}REPONAME: $REPO_NAME${NC}"
@@ -25,24 +25,18 @@ REPO_DIR=$HOME_DIR/$REPO_NAME
 ROOT_DIR=/root
 
 CONFIG_DIR=$REPO_DIR/config
-ENV_DIR=$REPO_DIR/env
+ENV_DIR=$REPO_DIR
 DATABASE_DIR=$REPO_DIR/database
 CONTAINERS_DIR=$REPO_DIR/containers
 LOGS_DIR=$REPO_DIR/logs
 
 FULL_INSTALL="${FULL_INSTALL:=false}"
 
-ENV_FILE_SOURCE=$HOME_DIR/.env.droplet
-ENV_FILE_DEST=$ENV_DIR/.env.droplet
+ENV_FILE_SOURCE=$HOME_DIR/.env
+ENV_FILE_DEST=$ENV_DIR/.env
 
 FIREBASE_CREDENTIALS_FILE_SOURCE=$HOME_DIR/firebase_service_account.json
 FIREBASE_CREDENTIALS_FILE_DEST=$CONFIG_DIR/firebase_service_account.json
-
-CHANNELS_CONFIG_FILE_SOURCE=$HOME_DIR/discord_channel_config.json
-CHANNELS_CONFIG_FILE_DEST=$CONFIG_DIR/discord_channel_config.json
-
-ALERTS_CONFIG_FILE_SOURCE=$HOME_DIR/alerts_config.json
-ALERTS_CONFIG_FILE_DEST=$CONFIG_DIR/alerts_config.json
 
 MAKEFILE_SOURCE=$HOME_DIR/Makefile
 MAKEFILE_DEST=$REPO_DIR/Makefile
@@ -50,7 +44,7 @@ MAKEFILE_DEST=$REPO_DIR/Makefile
 COMPOSE_FILE_SOURCE=$HOME_DIR/docker-compose.yml
 COMPOSE_FILE_DEST=$CONTAINERS_DIR/docker-compose.yml
 
-INPUTRC_FILE=$HOME_DIR/.inputrc
+INPUTRC_FILE=$HOME_DIR/inputrc
 
 wait_for_input() {
     echo "Press any key to continue"
@@ -166,8 +160,6 @@ mkdir -p $DATABASE_DIR/volumes/redis || true
 mkdir -p $CONTAINERS_DIR || true
 mkdir -p $ENV_DIR || true
 
-cp $CHANNELS_CONFIG_FILE_SOURCE $CHANNELS_CONFIG_FILE_DEST || true
-cp $ALERTS_CONFIG_FILE_SOURCE $ALERTS_CONFIG_FILE_DEST || true
 cp $FIREBASE_CREDENTIALS_FILE_SOURCE $FIREBASE_CREDENTIALS_FILE_DEST || true
 cp $ENV_FILE_SOURCE $ENV_FILE_DEST || true
 
@@ -201,8 +193,6 @@ fi
 
 # Replace the BACKEND_ID in the .env file
 sed -i "s/^BACKEND_ID=.*/BACKEND_ID=${BACKEND_ID}/" "$ENV_FILE_DEST"
-
-make set_docker_env_droplet
 
 echo -e "${GREEN}Setting up containers using ${REPO_DIR}${NC}"
 cd $THIS_DIR
